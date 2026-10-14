@@ -330,14 +330,15 @@ class TestUX(unittest.TestCase):
             for k, v in d.items():
                 self.assertTrue(v and v.strip(), f"{lang}.{k} vazio")
 
-    def test_contratos_emoji(self):
+    def test_contratos_estaveis(self):
         src = SRC_PATH.read_text(encoding="utf-8")
-        # lógica depende destes prefixos de ícone
-        self.assertIn('papel.startswith(":material/backpack:")', src)
-        self.assertIn('modo.startswith(":material/cloud_off:")', src)
-        for lang, d in H["STRINGS"].items():
-            self.assertTrue(d["role_student"].startswith(":material/backpack:"), lang)
-            self.assertTrue(d["mode_offline"].startswith(":material/cloud_off:"), lang)
+        # valores de opção independentes do idioma (mudar de língua não
+        # invalida a seleção: sem saltos silenciosos de modo/papel)
+        self.assertIn('is_student = (papel == "student")', src)
+        self.assertIn('offline = (modo == "offline")', src)
+        self.assertIn('["teacher", "student"]', src)
+        self.assertIn('["online", "offline"]', src)
+        self.assertIn("format_func=", src)
 
     def test_strings_sem_emojis(self):
         import re as _re
@@ -403,10 +404,25 @@ class TestRetroTheme(unittest.TestCase):
             self.assertIn(token, self.cfg)
 
     def test_css_uses_own_classes_only(self):
-        self.assertIn("mac-menubar", self.src)
         self.assertIn("mac-window", self.src)
         self.assertIn("mac-statusbar", self.src)
         self.assertNotIn("emotion-cache", self.src)
+
+    def test_menu_bar_funcional(self):
+        for agulha in (
+            'key="menu_file"',
+            'key="menu_edit"',
+            'key="menu_view"',
+            'key="menu_special"',
+            'key="menu_brand"',
+            "@st.dialog",
+            "_pending_widget",
+            "def menu_novo",
+            "def menu_go",
+        ):
+            self.assertIn(agulha, self.src)
+        # sem itens decorativos: File/Edit/View/Special são widgets reais
+        self.assertNotIn("<span>File</span>", self.src)
 
     def test_no_external_images(self):
         self.assertNotIn("img.icons8.com", self.src)

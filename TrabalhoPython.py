@@ -33,24 +33,12 @@ st.markdown(
     """
 <style>
     /* ============ EduGen OS: retro System 6 chrome (own classes only) ============ */
-    .mac-menubar {
-        position: sticky;
-        top: 0;
-        z-index: 999;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #FFFFFF;
-        border-bottom: 3px solid #111111;
-        padding: 0.3rem 1rem;
+    .st-key-menu_brand button,
+    .st-key-menu_file button,
+    .st-key-menu_edit button,
+    .st-key-menu_view button,
+    .st-key-menu_special button {
         font-size: 1.35rem;
-        margin: 0 -1rem 1rem -1rem;
-    }
-    .mac-menubar .menus span {
-        margin-right: 1.1rem;
-    }
-    .mac-menubar .brand {
-        font-weight: 700;
     }
     .mac-window {
         background: #FFFFFF;
@@ -200,13 +188,16 @@ st.markdown(
         accent-color: #111111;
     }
 </style>
-<div class="mac-menubar">
-    <div class="menus"><span class="brand">EduGen OS</span><span>File</span><span>Edit</span><span>View</span><span>Special</span></div>
-    <div>System 6.0.8</div>
-</div>
 """,
     unsafe_allow_html=True,
 )
+
+
+# Aplica trocas de idioma/papel/modo pedidas via menu bar.
+# Corre antes de qualquer widget: definir estes valores aqui é seguro.
+if "_pending_widget" in st.session_state:
+    _pk, _pv = st.session_state.pop("_pending_widget")
+    st.session_state[_pk] = _pv
 
 
 # ==========================================================
@@ -554,7 +545,7 @@ STRINGS = {
         "waiting_key": "Aguardando chave API...",
         "need_key": ":material/arrow_forward: Insira a sua chave API do Gemini na barra lateral **ou** mude para o modo :material/cloud_off: Offline/Demo.",
         "offline_banner": ":material/cloud_off: Está no **modo Offline/Demo**: funciona **sem chave Gemini**, com exemplos locais e correção automática simples (sem IA).",
-        "main_title": ":material/school: EduGen: Gerador e Avaliador Educativo Inteligente",
+        "main_title": "EduGen: Gerador e Avaliador Educativo Inteligente",
         "sub_header": "Plataforma interativa para criação automática de recursos didáticos e avaliação assistida por IA — com modo Offline/Demo sem chave.",
         "tab1": ":material/menu_book: Módulo 1: Conteúdo Explicativo, Quiz & Lacunas",
         "tab2": ":material/extension: Módulo 2: Jogo de Associação de Conceitos",
@@ -670,6 +661,20 @@ STRINGS = {
         "ed_l_nomarker": "A frase deve conter o marcador [___].",
         "ed_reset": "Repor base demo",
         "ed_reset_ok": "Base demo reposta.",
+        "menu_about": "Sobre o EduGen OS",
+        "menu_new": "Novo",
+        "menu_clear_answers": "Limpar respostas",
+        "menu_clear_data": "Apagar recursos",
+        "menu_to_pt": "Português",
+        "menu_to_en": "English",
+        "menu_to_teacher": "Professor",
+        "menu_to_student": "Aluno",
+        "menu_to_online": "Online",
+        "menu_to_offline": "Offline",
+        "menu_restart": "Reiniciar sessão",
+        "about_title": "Sobre o EduGen OS",
+        "about_body": "**EduGen OS 1.0** — edição retro.\n\nGerador e avaliador educativo com IA (Gemini) e modo offline sem chave.\n\n- Módulos 1, 2 e 3: conteúdo, jogo e avaliação multimodal\n- Papéis Professor/Aluno · PT/EN",
+        "about_close": "Fechar",
     },
     "en": {
         "role_label": "Role:",
@@ -691,7 +696,7 @@ STRINGS = {
         "waiting_key": "Waiting for API key...",
         "need_key": ":material/arrow_forward: Enter your Gemini API key in the sidebar **or** switch to :material/cloud_off: Offline/Demo mode.",
         "offline_banner": ":material/cloud_off: You are in **Offline/Demo mode**: works **without a Gemini key**, with local examples and simple automatic correction (no AI).",
-        "main_title": ":material/school: EduGen: Intelligent Educational Generator & Evaluator",
+        "main_title": "EduGen: Intelligent Educational Generator & Evaluator",
         "sub_header": "Interactive platform for automatic teaching-resource creation and AI-assisted assessment — with keyless Offline/Demo mode.",
         "tab1": ":material/menu_book: Module 1: Explanatory Content, Quiz & Gaps",
         "tab2": ":material/extension: Module 2: Concept-Matching Game",
@@ -807,6 +812,20 @@ STRINGS = {
         "ed_l_nomarker": "The sentence must contain the [___] marker.",
         "ed_reset": "Restore demo base",
         "ed_reset_ok": "Demo base restored.",
+        "menu_about": "About EduGen OS",
+        "menu_new": "New",
+        "menu_clear_answers": "Clear answers",
+        "menu_clear_data": "Delete resources",
+        "menu_to_pt": "Português",
+        "menu_to_en": "English",
+        "menu_to_teacher": "Teacher",
+        "menu_to_student": "Student",
+        "menu_to_online": "Online",
+        "menu_to_offline": "Offline",
+        "menu_restart": "Restart session",
+        "about_title": "About EduGen OS",
+        "about_body": "**EduGen OS 1.0** — retro edition.\n\nAI-powered (Gemini) teaching generator and evaluator with keyless offline mode.\n\n- Modules 1, 2 and 3: content, game and multimodal assessment\n- Teacher/Student roles · PT/EN",
+        "about_close": "Close",
     },
 }
 
@@ -816,7 +835,7 @@ STRINGS = {
 # ==========================================================
 with st.sidebar:
     st.markdown(
-        '<div class="mac-panel-title"><span>:material/tune: Control Panel</span></div>',
+        '<div class="mac-panel-title"><span>Control Panel</span></div>',
         unsafe_allow_html=True,
     )
 
@@ -825,17 +844,26 @@ with st.sidebar:
     STR = STRINGS[LANG]
     INSTR = STR["instr"]
 
-    papel = st.radio(STR["role_label"], [STR["role_teacher"], STR["role_student"]], index=0, key="papel")
-    is_student = papel.startswith(":material/backpack:")
+    papel = st.radio(
+        STR["role_label"],
+        ["teacher", "student"],
+        format_func=lambda k: STR["role_teacher"] if k == "teacher" else STR["role_student"],
+        index=0,
+        key="papel",
+    )
+    # Valores estáveis (independentes do idioma): mudar de idioma nunca
+    # invalida a seleção guardada, por isso o modo/papel nunca saltam sozinhos.
+    is_student = (papel == "student")
 
     modo = st.radio(
         STR["mode_label"],
-        [STR["mode_online"], STR["mode_offline"]],
+        ["online", "offline"],
+        format_func=lambda k: STR["mode_online"] if k == "online" else STR["mode_offline"],
         index=0,
         key="modo",
         help=STR["mode_help"],
     )
-    offline = modo.startswith(":material/cloud_off:")
+    offline = (modo == "offline")
 
     client = None
     api_key = ""
@@ -881,6 +909,84 @@ with st.sidebar:
     st.divider()
     if not offline:
         st.info(STR["model_info"])
+
+# ==========================================================
+# MENU BAR FUNCIONAL (EduGen OS / File / Edit / View / Special)
+# ==========================================================
+@st.dialog(STR["about_title"])
+def about_dialog():
+    st.markdown(STR["about_body"])
+    if st.button(STR["about_close"], key="about_close", icon=":material/close:"):
+        st.rerun()
+
+
+def menu_go(widget_key: str, value: str):
+    """Troca idioma/papel/modo via menu; aplica no próximo run (antes dos widgets)."""
+    st.session_state["_pending_widget"] = (widget_key, value)
+    st.rerun()
+
+
+def menu_novo():
+    """File > Novo: limpa recursos, respostas e pergunta multimodal."""
+    for k in ("dados_m1", "dados_m2", "pergunta_multimodal", "img_bytes", "_img_id"):
+        st.session_state.pop(k, None)
+    limpar_respostas_antigas()
+
+
+c_brand, c_file, c_edit, c_view, c_special, c_ver = st.columns(
+    [1.5, 0.7, 0.7, 0.8, 0.9, 1.4], vertical_alignment="center"
+)
+with c_brand:
+    ch_brand = st.menu_button("EduGen OS", [STR["menu_about"]], type="tertiary", key="menu_brand")
+with c_file:
+    ch_file = st.menu_button("File", [STR["menu_new"]], type="tertiary", key="menu_file")
+with c_edit:
+    ch_edit = st.menu_button(
+        "Edit",
+        [STR["menu_clear_answers"], STR["menu_clear_data"]],
+        type="tertiary",
+        key="menu_edit",
+    )
+with c_view:
+    ch_view = st.menu_button(
+        "View",
+        [
+            STR["menu_to_pt"],
+            STR["menu_to_en"],
+            STR["menu_to_teacher"],
+            STR["menu_to_student"],
+            STR["menu_to_online"],
+            STR["menu_to_offline"],
+        ],
+        type="tertiary",
+        key="menu_view",
+    )
+with c_special:
+    ch_special = st.menu_button("Special", [STR["menu_restart"]], type="tertiary", key="menu_special")
+with c_ver:
+    st.markdown('<div style="text-align: right;">System 6.0.8</div>', unsafe_allow_html=True)
+
+if ch_brand == STR["menu_about"]:
+    about_dialog()
+elif ch_file == STR["menu_new"]:
+    menu_novo()
+elif ch_edit == STR["menu_clear_answers"]:
+    limpar_respostas_antigas()
+elif ch_edit == STR["menu_clear_data"]:
+    st.session_state.pop("dados_m1", None)
+    st.session_state.pop("dados_m2", None)
+    limpar_respostas_antigas()
+elif ch_view in (STR["menu_to_pt"], STR["menu_to_en"]):
+    menu_go("lang", "Português" if ch_view == STR["menu_to_pt"] else "English")
+elif ch_view in (STR["menu_to_teacher"], STR["menu_to_student"]):
+    menu_go("papel", "teacher" if ch_view == STR["menu_to_teacher"] else "student")
+elif ch_view in (STR["menu_to_online"], STR["menu_to_offline"]):
+    menu_go("modo", "online" if ch_view == STR["menu_to_online"] else "offline")
+elif ch_special == STR["menu_restart"]:
+    for k in list(st.session_state.keys()):
+        del st.session_state[k]
+    st.rerun()
+
 
 st.markdown(
     f"""<div class="mac-window">
