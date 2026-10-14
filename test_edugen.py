@@ -231,7 +231,6 @@ class TestKeywords(unittest.TestCase):
 
 
 class TestFluxoCorrecao(unittest.TestCase):
-    """Simula os loops de correção do app sobre dados offline."""
 
     def test_m1_tudo_certo_da_100(self):
         d = gerar_dados_m1_offline("ADN", 4)
@@ -386,6 +385,44 @@ class TestUX(unittest.TestCase):
         src = SRC_PATH.read_text(encoding="utf-8")
         self.assertNotIn("A resposta do modelo não é um objeto JSON válido.", src.split("STRINGS")[0])
         self.assertNotIn('st.error(f"Erro ao configurar a API do Gemini', src)
+
+
+class TestValidacao(unittest.TestCase):
+    def test_pergunta_ok(self):
+        self.assertTrue(H["pergunta_valida"](dict(PERGUNTA_BASE)))
+
+    def test_pergunta_opcao_dict_rejeitada(self):
+        q = {"pergunta": "Q", "opcoes": ["A", {"x": 1}], "resposta_correta": 0}
+        self.assertFalse(H["pergunta_valida"](q))
+
+    def test_pergunta_opcao_lista_rejeitada(self):
+        q = {"pergunta": "Q", "opcoes": [["A"]], "resposta_correta": 0}
+        self.assertFalse(H["pergunta_valida"](q))
+
+    def test_pergunta_opcao_bool_rejeitada(self):
+        q = {"pergunta": "Q", "opcoes": [True, False], "resposta_correta": 0}
+        self.assertFalse(H["pergunta_valida"](q))
+
+    def test_pergunta_opcoes_numericas_ok(self):
+        q = {"pergunta": "Q", "opcoes": [1, 2, 3], "resposta_correta": 2}
+        self.assertTrue(H["pergunta_valida"](q))
+
+    def test_pergunta_nao_dict(self):
+        self.assertFalse(H["pergunta_valida"]("texto"))
+        self.assertFalse(H["pergunta_valida"](None))
+
+    def test_par_ok(self):
+        self.assertTrue(H["par_valido"]({"conceito": "A", "definicao": "B"}))
+
+    def test_par_definicao_dict_rejeitado(self):
+        self.assertFalse(H["par_valido"]({"conceito": "A", "definicao": {"x": 1}}))
+
+    def test_par_vazio_rejeitado(self):
+        self.assertFalse(H["par_valido"]({"conceito": "  ", "definicao": "B"}))
+        self.assertFalse(H["par_valido"]({"conceito": "A"}))
+
+    def test_par_nao_dict(self):
+        self.assertFalse(H["par_valido"](None))
 
 
 class TestRetroTheme(unittest.TestCase):

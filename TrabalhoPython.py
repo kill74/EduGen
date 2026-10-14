@@ -263,6 +263,38 @@ def limpar_chaves_resposta_m1():
         del st.session_state[k]
 
 
+def _eh_opcao(o) -> bool:
+    """Uma opção tem de ser escalar (str/int/float); dicts/listas crashavam o st.radio."""
+    return isinstance(o, (str, int, float)) and not isinstance(o, bool)
+
+
+def pergunta_valida(q) -> bool:
+    """Valida uma pergunta de escolha múltipla (online ou offline)."""
+    if not isinstance(q, dict):
+        return False
+    opcoes = q.get("opcoes", [])
+    idx = q.get("resposta_correta")
+    return (
+        isinstance(opcoes, list)
+        and len(opcoes) > 0
+        and all(_eh_opcao(o) for o in opcoes)
+        and isinstance(idx, int)
+        and not isinstance(idx, bool)
+        and 0 <= idx < len(opcoes)
+    )
+
+
+def par_valido(p) -> bool:
+    """Valida um par conceito-definição do jogo de associação."""
+    if not isinstance(p, dict):
+        return False
+    for k in ("conceito", "definicao"):
+        v = p.get(k)
+        if not _eh_opcao(v) or str(v).strip() == "":
+            return False
+    return True
+
+
 def ajustar_num_opcoes(pergunta: dict, num_opcoes: int) -> dict:
     """Adapta uma pergunta do banco offline para o nº de opções pedido (2-6)."""
     opcoes = list(pergunta.get("opcoes", []))
@@ -1232,21 +1264,13 @@ with tab1:
         respostas_aluno_m1 = {}
         perguntas_validas = []
         for idx, q in enumerate(perguntas):
-            if not isinstance(q, dict):
+            if not pergunta_valida(q):
                 st.warning(f"P{idx + 1} {STR['bad_struct']}")
                 continue
             enunciado = q.get("pergunta", f"Pergunta {idx + 1}")
-            opcoes = q.get("opcoes", [])
-            idx_corr = q.get("resposta_correta")
-            if (
-                not isinstance(opcoes, list)
-                or not opcoes
-                or not isinstance(idx_corr, int)
-                or isinstance(idx_corr, bool)
-                or not (0 <= idx_corr < len(opcoes))
-            ):
-                st.warning(f"P{idx + 1} {STR['bad_struct']}")
-                continue
+            if not isinstance(enunciado, str):
+                enunciado = str(enunciado)
+            opcoes = q["opcoes"]
             perguntas_validas.append((idx, q))
             st.markdown(f"**P{idx + 1}: {enunciado}**")
             respostas_aluno_m1[idx] = st.radio(
@@ -1367,11 +1391,7 @@ with tab2:
                 st.session_state.pop("dados_m2", None)
                 st.rerun()
             st.stop()
-        pares = [
-            p
-            for p in dados_m2.get("pares", [])
-            if isinstance(p, dict) and p.get("conceito") and p.get("definicao")
-        ]
+        pares = [p for p in dados_m2.get("pares", []) if par_valido(p)]
         if not pares:
             st.warning(STR["no_pairs"])
         else:
