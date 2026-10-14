@@ -24,7 +24,7 @@ except ImportError:
 # ==========================================================
 st.set_page_config(
     page_title="EduGen - Sistema Interativo de IA Generativa",
-    page_icon="🎓",
+    page_icon=":material/school:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -32,32 +32,178 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-    .main-header {
-        font-size: 2.2rem;
-        color: #1E3A8A;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
+    /* ============ EduGen OS: retro System 6 chrome (own classes only) ============ */
+    .mac-menubar {
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #FFFFFF;
+        border-bottom: 3px solid #111111;
+        padding: 0.3rem 1rem;
+        font-size: 1.35rem;
+        margin: 0 -1rem 1rem -1rem;
     }
-    .sub-header {
-        font-size: 1.1rem;
-        color: #4B5563;
-        margin-bottom: 1.5rem;
+    .mac-menubar .menus span {
+        margin-right: 1.1rem;
+    }
+    .mac-menubar .brand {
+        font-weight: 700;
+    }
+    .mac-window {
+        background: #FFFFFF;
+        border: 2px solid #111111;
+        box-shadow: 5px 5px 0 #111111;
+        margin-bottom: 1.2rem;
+    }
+    .mac-titlebar {
+        height: 30px;
+        background: repeating-linear-gradient(
+            to bottom,
+            #111111 0px, #111111 2px,
+            #FFFFFF 2px, #FFFFFF 5px
+        );
+        border-bottom: 2px solid #111111;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .mac-title {
+        background: #FFFFFF;
+        border: 2px solid #111111;
+        padding: 0 14px;
+        font-size: 1.4rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .mac-body {
+        padding: 1rem 1.2rem;
+    }
+    .mac-body .main-header {
+        font-size: 1.9rem;
+        font-weight: 700;
+        margin-bottom: 0.2rem;
+    }
+    .mac-body .sub-header {
+        font-size: 1.25rem;
+    }
+    .mac-statusbar {
+        display: flex;
+        justify-content: space-between;
+        background: #FFFFFF;
+        border-top: 3px solid #111111;
+        padding: 0.3rem 1rem;
+        font-size: 1.15rem;
+        margin-top: 2rem;
+    }
+    .mac-statusbar .cursor {
+        display: inline-block;
+        width: 0.6em;
+        height: 1.1em;
+        background: #111111;
+        vertical-align: text-bottom;
+        animation: mac-blink 1.1s steps(1) infinite;
+    }
+    @keyframes mac-blink {
+        50% { opacity: 0; }
+    }
+    .mac-panel-title {
+        background: repeating-linear-gradient(
+            to bottom,
+            #111111 0px, #111111 2px,
+            #FFFFFF 2px, #FFFFFF 5px
+        );
+        border: 2px solid #111111;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.8rem;
+    }
+    .mac-panel-title span {
+        background: #FFFFFF;
+        border-left: 2px solid #111111;
+        border-right: 2px solid #111111;
+        padding: 0 12px;
+        font-size: 1.3rem;
+        font-weight: 700;
     }
     .correct-badge {
-        background-color: #DEF7EC;
-        color: #03543F;
+        background: #111111;
+        color: #FFFFFF;
+        border: 2px solid #111111;
+        box-shadow: 3px 3px 0 #888888;
         padding: 0.5rem 1rem;
-        border-radius: 0.375rem;
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 1.2rem;
+    }
+    .correct-badge::before {
+        content: "\\2713  ";
     }
     .incorrect-badge {
-        background-color: #FDE8E8;
-        color: #9B1C1C;
+        background: #FFFFFF;
+        color: #111111;
+        border: 2px solid #111111;
+        box-shadow: 3px 3px 0 #888888;
         padding: 0.5rem 1rem;
-        border-radius: 0.375rem;
-        font-weight: 600;
+        font-weight: 700;
+        font-size: 1.2rem;
+    }
+    .incorrect-badge::before {
+        content: "\\2717  ";
+    }
+    /* Beveled 1-bit buttons + square inputs (stable widget hooks only) */
+    div[data-testid="stButton"] button,
+    div[data-testid="stBaseButton-primary"] button,
+    div[data-testid="stBaseButton-secondary"] button {
+        background: #FFFFFF;
+        color: #111111;
+        border: 2px solid #111111;
+        border-radius: 0;
+        box-shadow: 3px 3px 0 #111111;
+        font-size: 1.2rem;
+    }
+    div[data-testid="stButton"] button:active,
+    div[data-testid="stBaseButton-primary"] button:active,
+    div[data-testid="stBaseButton-secondary"] button:active {
+        transform: translate(2px, 2px);
+        box-shadow: 1px 1px 0 #111111;
+    }
+    div[data-testid="stBaseButton-primary"] button {
+        background: #111111;
+        color: #FFFFFF;
+    }
+    div[data-testid="stTextInput"] input,
+    div[data-testid="stNumberInput"] input,
+    div[data-testid="stTextArea"] textarea {
+        border: 2px solid #111111;
+        border-radius: 0;
+        background: #FFFFFF;
+    }
+    div[data-testid="stSelectbox"] > div {
+        border: 2px solid #111111;
+        border-radius: 0;
+        background: #FFFFFF;
+    }
+    div[data-testid="stExpander"] {
+        border: 2px solid #111111;
+        border-radius: 0;
+        background: #FFFFFF;
+    }
+    hr {
+        border: none;
+        border-top: 2px solid #111111;
+        margin: 1rem 0;
+    }
+    input[type="radio"], input[type="checkbox"] {
+        accent-color: #111111;
     }
 </style>
+<div class="mac-menubar">
+    <div class="menus"><span class="brand">EduGen OS</span><span>File</span><span>Edit</span><span>View</span><span>Special</span></div>
+    <div>System 6.0.8</div>
+</div>
 """,
     unsafe_allow_html=True,
 )
@@ -390,34 +536,34 @@ def corrigir_por_keywords(resposta: str, keywords: str) -> dict:
 STRINGS = {
     "pt": {
         "role_label": "Papel:",
-        "role_teacher": "👩‍🏫 Professor",
-        "role_student": "🧑‍🎓 Aluno",
+        "role_teacher": ":material/cast_for_education: Professor",
+        "role_student": ":material/backpack: Aluno",
         "mode_label": "Modo de funcionamento:",
-        "mode_online": "🌐 Online (com chave Gemini)",
-        "mode_offline": "📴 Offline / Demo (sem chave)",
+        "mode_online": ":material/language: Online (com chave Gemini)",
+        "mode_offline": ":material/cloud_off: Offline / Demo (sem chave)",
         "mode_help": "O modo Offline usa um banco local de exemplos e correção sem IA. Ideal para demonstrações sem internet/chave.",
         "model_label": "Modelo de IA Generativa:",
         "model_help": "gemini-2.0-flash é o recomendado (rápido e económico). 1.5-* mantidos por compatibilidade.",
         "model_info": "O modelo Flash é recomendado para rapidez/custo; o Pro para raciocínio analítico.",
-        "offline_info": "📴 Modo Offline: sem chamadas à API. Módulos 1 e 2 usam banco local; Módulo 3 usa pergunta manual + palavras-chave.",
+        "offline_info": ":material/cloud_off: Modo Offline: sem chamadas à API. Módulos 1 e 2 usam banco local; Módulo 3 usa pergunta manual + palavras-chave.",
         "online_cfg": "Configure o acesso à API do Google Gemini.",
         "api_key_label": "Chave API do Gemini:",
         "api_key_help": "Insira a sua chave API do Google AI Studio. Pode também definir GEMINI_API_KEY nos Secrets.",
         "lib_missing": "Biblioteca `google-genai` não instalada. Corra: `pip install google-genai`",
         "client_ok": "Cliente inicializado. (A validade da chave é confirmada na primeira chamada.)",
         "waiting_key": "Aguardando chave API...",
-        "need_key": "👈 Insira a sua chave API do Gemini na barra lateral **ou** mude para o modo 📴 Offline/Demo.",
-        "offline_banner": "📴 Está no **modo Offline/Demo**: funciona **sem chave Gemini**, com exemplos locais e correção automática simples (sem IA).",
-        "main_title": "🎓 EduGen: Gerador e Avaliador Educativo Inteligente",
+        "need_key": ":material/arrow_forward: Insira a sua chave API do Gemini na barra lateral **ou** mude para o modo :material/cloud_off: Offline/Demo.",
+        "offline_banner": ":material/cloud_off: Está no **modo Offline/Demo**: funciona **sem chave Gemini**, com exemplos locais e correção automática simples (sem IA).",
+        "main_title": ":material/school: EduGen: Gerador e Avaliador Educativo Inteligente",
         "sub_header": "Plataforma interativa para criação automática de recursos didáticos e avaliação assistida por IA — com modo Offline/Demo sem chave.",
-        "tab1": "📚 Módulo 1: Conteúdo Explicativo, Quiz & Lacunas",
-        "tab2": "🧩 Módulo 2: Jogo de Associação de Conceitos",
-        "tab3": "🖼️ Módulo 3: Avaliação Multimodal & Resposta Aberta",
+        "tab1": ":material/menu_book: Módulo 1: Conteúdo Explicativo, Quiz & Lacunas",
+        "tab2": ":material/extension: Módulo 2: Jogo de Associação de Conceitos",
+        "tab3": ":material/image: Módulo 3: Avaliação Multimodal & Resposta Aberta",
         "instr": "Responde sempre em português europeu (pt-PT). Mantém exatamente as chaves do JSON pedido.",
         "m1_header": "1. Geração de Conteúdo Didático e Questionário Adaptável",
         "tema_label": "Tema ou Tópico da Aula:",
         "num_opc_label": "Número de opções por pergunta:",
-        "btn_gen_m1": "🚀 Gerar Recurso Didático Completo",
+        "btn_gen_m1": "Gerar Recurso Didático Completo",
         "spin_m1": "A gerar texto explicativo, quiz e exercícios de lacunas...",
         "demo_generic_ok": "Recurso demo gerado (offline). Para conteúdo factual escolha 'ADN' ou 'Sistemas Operativos', ou use o modo Online.",
         "demo_bank_ok": "Recurso demo gerado a partir do banco offline!",
@@ -425,20 +571,20 @@ STRINGS = {
         "gen_err": "Erro ao gerar conteúdo: ",
         "bad_json": "A resposta do modelo não é um objeto JSON válido.",
         "client_err": "Erro ao configurar a API do Gemini: ",
-        "fix_data": "🗑️ Limpar dados inválidos",
+        "fix_data": "Limpar dados inválidos",
         "bad_data": "Os dados guardados estão corrompidos. Gere o recurso novamente.",
-        "texto_sub": "📖 Texto Explicativo (Recurso para o Aluno)",
+        "texto_sub": ":material/description: Texto Explicativo (Recurso para o Aluno)",
         "no_text": "(sem texto)",
-        "quiz_sub": "❓ Questionário de Escolha Múltipla",
-        "lac_sub": "✏️ Exercícios de Preenchimento de Lacunas (Fill the Blank)",
+        "quiz_sub": ":material/quiz: Questionário de Escolha Múltipla",
+        "lac_sub": ":material/edit_note: Exercícios de Preenchimento de Lacunas (Fill the Blank)",
         "escolha_label": "Selecione a resposta para a P",
         "lacuna_label": "Palavra para a lacuna ",
         "exercicio": "Exercício ",
         "frase_missing": "(frase em falta)",
         "bad_struct": "ignorada: estrutura inválida recebida do modelo.",
         "lac_no_hidden": "ignorada: sem 'palavra_oculta'.",
-        "btn_submit_m1": "✅ Submeter e Corrigir Respostas",
-        "result_sub": "📊 Resultado da Avaliação Automática",
+        "btn_submit_m1": "Submeter e Corrigir Respostas",
+        "result_sub": ":material/assessment: Resultado da Avaliação Automática",
         "no_answer": "Sem resposta. Resposta certa: ",
         "correct": "Correto! ",
         "incorrect": "Incorreto. Resposta certa: ",
@@ -453,14 +599,14 @@ STRINGS = {
         "m2_header": "2. Jogo de Associação de Conceitos",
         "m2_desc": "Gere dinâmicas interativas onde os estudantes associam termos à respetiva definição pedagógica.",
         "tema_m2_label": "Tema do Jogo de Associação:",
-        "btn_create_m2": "🎲 Criar Jogo de Associação",
+        "btn_create_m2": "Criar Jogo de Associação",
         "spin_m2": "A criar pares conceituais...",
         "jogo_demo_ok": "Jogo demo criado (offline, sem IA)!",
         "jogo_ok": "Jogo criado com sucesso!",
         "jogo_err": "Erro ao gerar jogo: ",
         "bad_game": "Os dados do jogo estão corrompidos. Crie o jogo novamente.",
         "no_pairs": "Nenhum par válido foi gerado.",
-        "assoc_sub": "🎮 Associação de Conceitos",
+        "assoc_sub": ":material/link: Associação de Conceitos",
         "concepts_h": "### Conceitos",
         "defs_h": "### Escolha a Definição Correspondente",
         "def_for": "Definição para ",
@@ -473,37 +619,37 @@ STRINGS = {
         "assoc_result": "Resultado da Associação",
         "assoc_pairs_ok": "Pares Corretos",
         "m3_header": "3. Avaliação Multimodal com Análise e Correção Semântica por IA",
-        "m3_off_info": "📴 Modo Offline: a análise por imagem com IA está indisponível. Use a **pergunta manual + palavras-chave** abaixo.",
+        "m3_off_info": ":material/cloud_off: Modo Offline: a análise por imagem com IA está indisponível. Use a **pergunta manual + palavras-chave** abaixo.",
         "m3_on_desc": "Carregue uma imagem/recurso visual. A IA formulará uma questão analítica e corrigirá a resposta aberta do aluno.",
         "q_teacher_label": "Pergunta definida pelo professor (sobre a imagem ou tema):",
         "kw_label": "Palavras-chave esperadas (separadas por vírgula):",
         "kw_ph": "ex.: paginação, frames, memória virtual",
         "answer_label": "Resposta do Aluno (Texto Aberto Curto):",
-        "btn_correct_off": "✅ Corrigir sem IA (palavras-chave)",
+        "btn_correct_off": "Corrigir sem IA (palavras-chave)",
         "ask_question_first": "Defina primeiro a pergunta.",
         "ask_kw_first": "Defina as palavras-chave esperadas antes de corrigir.",
         "ask_answer_first": "Introduza a resposta do aluno antes de submeter.",
-        "report_off": "📋 Relatório da Avaliação (Offline)",
+        "report_off": ":material/fact_check: Relatório da Avaliação (Offline)",
         "state_good": "ESTADO: RESPOSTA CORRETA",
         "state_bad": "ESTADO: RESPOSTA INCORRETA",
         "score": "Pontuação Atribuída",
         "feedback_label": "Feedback:",
         "upload_label": "Carregar Imagem de Suporte (JPG, PNG):",
         "img_caption": "Recurso Visual do Professor",
-        "btn_gen_q": "🖼️ Gerar Pergunta Analítica sobre a Imagem",
+        "btn_gen_q": "Gerar Pergunta Analítica sobre a Imagem",
         "spin_img": "A analisar o conteúdo visual e a elaborar a pergunta...",
         "img_open_err": "Não foi possível abrir a imagem: ",
         "ia_no_question": "A IA não devolveu nenhuma pergunta. Tente novamente.",
         "gen_q_err": "Erro ao gerar pergunta: ",
         "generated_q": "Pergunta Gerada pela IA: ",
-        "btn_eval": "🤖 Avaliar e Corrigir Resposta com IA",
+        "btn_eval": "Avaliar e Corrigir Resposta com IA",
         "spin_eval": "A IA está a analisar semanticamente a resposta do aluno...",
         "eval_err": "Erro ao corrigir resposta: ",
-        "report_ia": "📋 Relatório da Avaliação Inteligente",
+        "report_ia": ":material/fact_check: Relatório da Avaliação Inteligente",
         "feedback_ia": "Feedback Pedagógico da IA: ",
         "need_answer": "Por favor, introduza uma resposta antes de submeter para avaliação.",
-        "ed_title": "✏️ Editor offline (Professor)",
-        "ed_load": "📥 Carregar base demo para editar",
+        "ed_title": ":material/edit: Editor offline (Professor)",
+        "ed_load": "Carregar base demo para editar",
         "ed_text_label": "Texto explicativo (pode editar):",
         "ed_save_text": "Guardar texto",
         "ed_text_ok": "Texto atualizado!",
@@ -522,39 +668,39 @@ STRINGS = {
         "ed_l_ok": "Lacuna adicionada!",
         "ed_l_err": "Preencha a frase e a palavra correta.",
         "ed_l_nomarker": "A frase deve conter o marcador [___].",
-        "ed_reset": "♻️ Repor base demo",
+        "ed_reset": "Repor base demo",
         "ed_reset_ok": "Base demo reposta.",
     },
     "en": {
         "role_label": "Role:",
-        "role_teacher": "👩‍🏫 Teacher",
-        "role_student": "🧑‍🎓 Student",
+        "role_teacher": ":material/cast_for_education: Teacher",
+        "role_student": ":material/backpack: Student",
         "mode_label": "Operation mode:",
-        "mode_online": "🌐 Online (with Gemini key)",
-        "mode_offline": "📴 Offline / Demo (no key)",
+        "mode_online": ":material/language: Online (with Gemini key)",
+        "mode_offline": ":material/cloud_off: Offline / Demo (no key)",
         "mode_help": "Offline mode uses a local bank of examples and non-AI correction. Ideal for demos without internet/key.",
         "model_label": "Generative AI Model:",
         "model_help": "gemini-2.0-flash is recommended (fast and cheap). 1.5-* kept for compatibility.",
         "model_info": "The Flash model is recommended for speed/cost; Pro for analytical reasoning.",
-        "offline_info": "📴 Offline mode: no API calls. Modules 1 and 2 use a local bank; Module 3 uses manual question + keywords.",
+        "offline_info": ":material/cloud_off: Offline mode: no API calls. Modules 1 and 2 use a local bank; Module 3 uses manual question + keywords.",
         "online_cfg": "Configure Google Gemini API access.",
         "api_key_label": "Gemini API Key:",
         "api_key_help": "Enter your Google AI Studio API key. You can also set GEMINI_API_KEY in Secrets.",
         "lib_missing": "Library `google-genai` not installed. Run: `pip install google-genai`",
         "client_ok": "Client initialized. (Key validity is confirmed on the first call.)",
         "waiting_key": "Waiting for API key...",
-        "need_key": "👈 Enter your Gemini API key in the sidebar **or** switch to 📴 Offline/Demo mode.",
-        "offline_banner": "📴 You are in **Offline/Demo mode**: works **without a Gemini key**, with local examples and simple automatic correction (no AI).",
-        "main_title": "🎓 EduGen: Intelligent Educational Generator & Evaluator",
+        "need_key": ":material/arrow_forward: Enter your Gemini API key in the sidebar **or** switch to :material/cloud_off: Offline/Demo mode.",
+        "offline_banner": ":material/cloud_off: You are in **Offline/Demo mode**: works **without a Gemini key**, with local examples and simple automatic correction (no AI).",
+        "main_title": ":material/school: EduGen: Intelligent Educational Generator & Evaluator",
         "sub_header": "Interactive platform for automatic teaching-resource creation and AI-assisted assessment — with keyless Offline/Demo mode.",
-        "tab1": "📚 Module 1: Explanatory Content, Quiz & Gaps",
-        "tab2": "🧩 Module 2: Concept-Matching Game",
-        "tab3": "🖼️ Module 3: Multimodal Assessment & Open Answer",
+        "tab1": ":material/menu_book: Module 1: Explanatory Content, Quiz & Gaps",
+        "tab2": ":material/extension: Module 2: Concept-Matching Game",
+        "tab3": ":material/image: Module 3: Multimodal Assessment & Open Answer",
         "instr": "Always answer in English. Keep exactly the requested JSON keys.",
         "m1_header": "1. Teaching Content Generation and Adaptive Quiz",
         "tema_label": "Lesson Theme or Topic:",
         "num_opc_label": "Number of options per question:",
-        "btn_gen_m1": "🚀 Generate Full Teaching Resource",
+        "btn_gen_m1": "Generate Full Teaching Resource",
         "spin_m1": "Generating explanatory text, quiz and gap exercises...",
         "demo_generic_ok": "Demo resource generated (offline). For factual content choose 'ADN' or 'Sistemas Operativos', or use Online mode.",
         "demo_bank_ok": "Demo resource generated from the offline bank!",
@@ -562,20 +708,20 @@ STRINGS = {
         "gen_err": "Error generating content: ",
         "bad_json": "The model response is not a valid JSON object.",
         "client_err": "Error configuring the Gemini API: ",
-        "fix_data": "🗑️ Clear invalid data",
+        "fix_data": "Clear invalid data",
         "bad_data": "Stored data is corrupted. Please generate the resource again.",
-        "texto_sub": "📖 Explanatory Text (Student Resource)",
+        "texto_sub": ":material/description: Explanatory Text (Student Resource)",
         "no_text": "(no text)",
-        "quiz_sub": "❓ Multiple-Choice Quiz",
-        "lac_sub": "✏️ Fill-in-the-Blank Exercises",
+        "quiz_sub": ":material/quiz: Multiple-Choice Quiz",
+        "lac_sub": ":material/edit_note: Fill-in-the-Blank Exercises",
         "escolha_label": "Select the answer for Q",
         "lacuna_label": "Word for gap ",
         "exercicio": "Exercise ",
         "frase_missing": "(missing sentence)",
         "bad_struct": "skipped: invalid structure received from the model.",
         "lac_no_hidden": "skipped: no 'palavra_oculta'.",
-        "btn_submit_m1": "✅ Submit and Check Answers",
-        "result_sub": "📊 Automatic Assessment Result",
+        "btn_submit_m1": "Submit and Check Answers",
+        "result_sub": ":material/assessment: Automatic Assessment Result",
         "no_answer": "No answer. Correct answer: ",
         "correct": "Correct! ",
         "incorrect": "Incorrect. Correct answer: ",
@@ -590,14 +736,14 @@ STRINGS = {
         "m2_header": "2. Concept-Matching Game",
         "m2_desc": "Generate interactive dynamics where students match terms to their pedagogical definition.",
         "tema_m2_label": "Matching Game Theme:",
-        "btn_create_m2": "🎲 Create Matching Game",
+        "btn_create_m2": "Create Matching Game",
         "spin_m2": "Creating concept pairs...",
         "jogo_demo_ok": "Demo game created (offline, no AI)!",
         "jogo_ok": "Game created successfully!",
         "jogo_err": "Error generating game: ",
         "bad_game": "Game data is corrupted. Please create the game again.",
         "no_pairs": "No valid pairs were generated.",
-        "assoc_sub": "🎮 Concept Matching",
+        "assoc_sub": ":material/link: Concept Matching",
         "concepts_h": "### Concepts",
         "defs_h": "### Choose the Matching Definition",
         "def_for": "Definition for ",
@@ -610,37 +756,37 @@ STRINGS = {
         "assoc_result": "Matching Result",
         "assoc_pairs_ok": "Correct Pairs",
         "m3_header": "3. Multimodal Assessment with AI Semantic Correction",
-        "m3_off_info": "📴 Offline mode: AI image analysis is unavailable. Use the **manual question + keywords** below.",
+        "m3_off_info": ":material/cloud_off: Offline mode: AI image analysis is unavailable. Use the **manual question + keywords** below.",
         "m3_on_desc": "Upload an image/visual resource. The AI will formulate an analytical question and grade the student's open answer.",
         "q_teacher_label": "Teacher-defined question (about the image or theme):",
         "kw_label": "Expected keywords (comma-separated):",
         "kw_ph": "e.g.: paging, frames, virtual memory",
         "answer_label": "Student Answer (Short Open Text):",
-        "btn_correct_off": "✅ Check without AI (keywords)",
+        "btn_correct_off": "Check without AI (keywords)",
         "ask_question_first": "Define the question first.",
         "ask_kw_first": "Define the expected keywords before checking.",
         "ask_answer_first": "Enter the student answer before submitting.",
-        "report_off": "📋 Assessment Report (Offline)",
+        "report_off": ":material/fact_check: Assessment Report (Offline)",
         "state_good": "STATUS: CORRECT ANSWER",
         "state_bad": "STATUS: INCORRECT ANSWER",
         "score": "Assigned Score",
         "feedback_label": "Feedback:",
         "upload_label": "Upload Support Image (JPG, PNG):",
         "img_caption": "Teacher Visual Resource",
-        "btn_gen_q": "🖼️ Generate Analytical Question about the Image",
+        "btn_gen_q": "Generate Analytical Question about the Image",
         "spin_img": "Analysing the visual content and drafting the question...",
         "img_open_err": "Could not open the image: ",
         "ia_no_question": "The AI returned no question. Please try again.",
         "gen_q_err": "Error generating question: ",
         "generated_q": "AI-Generated Question: ",
-        "btn_eval": "🤖 Assess and Correct Answer with AI",
+        "btn_eval": "Assess and Correct Answer with AI",
         "spin_eval": "The AI is semantically analysing the student answer...",
         "eval_err": "Error correcting answer: ",
-        "report_ia": "📋 Intelligent Assessment Report",
+        "report_ia": ":material/fact_check: Intelligent Assessment Report",
         "feedback_ia": "AI Pedagogical Feedback: ",
         "need_answer": "Please enter an answer before submitting for assessment.",
-        "ed_title": "✏️ Offline editor (Teacher)",
-        "ed_load": "📥 Load demo base for editing",
+        "ed_title": ":material/edit: Offline editor (Teacher)",
+        "ed_load": "Load demo base for editing",
         "ed_text_label": "Explanatory text (editable):",
         "ed_save_text": "Save text",
         "ed_text_ok": "Text updated!",
@@ -659,7 +805,7 @@ STRINGS = {
         "ed_l_ok": "Gap added!",
         "ed_l_err": "Fill in the sentence and the correct word.",
         "ed_l_nomarker": "The sentence must contain the [___] marker.",
-        "ed_reset": "♻️ Restore demo base",
+        "ed_reset": "Restore demo base",
         "ed_reset_ok": "Demo base restored.",
     },
 }
@@ -669,7 +815,10 @@ STRINGS = {
 # BARRA LATERAL - IDIOMA, PAPEL E MODO ONLINE / OFFLINE
 # ==========================================================
 with st.sidebar:
-    st.markdown("# 🎓")
+    st.markdown(
+        '<div class="mac-panel-title"><span>:material/tune: Control Panel</span></div>',
+        unsafe_allow_html=True,
+    )
 
     lang_nome = st.radio("Idioma / Language:", ["Português", "English"], index=0, key="lang")
     LANG = "en" if lang_nome == "English" else "pt"
@@ -677,7 +826,7 @@ with st.sidebar:
     INSTR = STR["instr"]
 
     papel = st.radio(STR["role_label"], [STR["role_teacher"], STR["role_student"]], index=0, key="papel")
-    is_student = papel.startswith("🧑‍🎓")
+    is_student = papel.startswith(":material/backpack:")
 
     modo = st.radio(
         STR["mode_label"],
@@ -686,7 +835,7 @@ with st.sidebar:
         key="modo",
         help=STR["mode_help"],
     )
-    offline = modo.startswith("📴")
+    offline = modo.startswith(":material/cloud_off:")
 
     client = None
     api_key = ""
@@ -733,8 +882,16 @@ with st.sidebar:
     if not offline:
         st.info(STR["model_info"])
 
-st.markdown(f'<div class="main-header">{STR["main_title"]}</div>', unsafe_allow_html=True)
-st.markdown(f'<div class="sub-header">{STR["sub_header"]}</div>', unsafe_allow_html=True)
+st.markdown(
+    f"""<div class="mac-window">
+    <div class="mac-titlebar"><div class="mac-title">EduGen</div></div>
+    <div class="mac-body">
+        <div class="main-header">{STR["main_title"]}</div>
+        <div class="sub-header">{STR["sub_header"]}</div>
+    </div>
+</div>""",
+    unsafe_allow_html=True,
+)
 
 if offline:
     st.warning(STR["offline_banner"])
@@ -829,7 +986,7 @@ with tab1:
     with col_input2:
         num_opcoes = st.slider(STR["num_opc_label"], min_value=2, max_value=6, value=4, key="num_opc")
 
-    if not is_student and st.button(STR["btn_gen_m1"], key="btn_m1"):
+    if not is_student and st.button(STR["btn_gen_m1"], icon=":material/auto_awesome:", key="btn_m1"):
         with st.spinner(STR["spin_m1"]):
             limpar_respostas_antigas(prefixos=("q_", "lac_"))
             if offline:
@@ -883,7 +1040,7 @@ with tab1:
     if offline and not is_student:
         with st.expander(STR["ed_title"]):
             if "dados_m1" not in st.session_state:
-                if st.button(STR["ed_load"], key="ed_load"):
+                if st.button(STR["ed_load"], icon=":material/download:", key="ed_load"):
                     st.session_state["dados_m1"] = gerar_dados_m1_offline(tema_m1, num_opcoes)
                     st.rerun()
             else:
@@ -897,7 +1054,7 @@ with tab1:
                         key="ed_texto",
                         height=100,
                     )
-                    if st.button(STR["ed_save_text"], key="ed_save_text"):
+                    if st.button(STR["ed_save_text"], icon=":material/save:", key="ed_save_text"):
                         d_ed["texto_explicativo"] = novo_texto
                         st.success(STR["ed_text_ok"])
 
@@ -906,7 +1063,7 @@ with tab1:
                     eopts = st.text_area(STR["ed_q_opts"], key="ed_opts", height=100)
                     ecorr = st.number_input(STR["ed_q_correct"], min_value=1, max_value=10, value=1, step=1, key="ed_corr")
                     eexpl = st.text_input(STR["ed_q_expl"], key="ed_expl")
-                    if st.button(STR["ed_q_add"], key="ed_q_add"):
+                    if st.button(STR["ed_q_add"], icon=":material/add:", key="ed_q_add"):
                         opts = [o.strip() for o in eopts.splitlines() if o.strip()]
                         if not eq.strip() or len(opts) < 2 or not (1 <= int(ecorr) <= len(opts)):
                             st.error(STR["ed_q_err"])
@@ -927,7 +1084,7 @@ with tab1:
                     st.markdown(f"**{STR['ed_l_new']}**")
                     ef = st.text_input(STR["ed_l_phrase"], key="ed_f")
                     ew = st.text_input(STR["ed_l_word"], key="ed_w")
-                    if st.button(STR["ed_l_add"], key="ed_l_add"):
+                    if st.button(STR["ed_l_add"], icon=":material/add:", key="ed_l_add"):
                         if not ef.strip() or not ew.strip():
                             st.error(STR["ed_l_err"])
                         elif "[___]" not in ef:
@@ -939,7 +1096,7 @@ with tab1:
                             limpar_chaves_resposta_m1()
                             st.success(STR["ed_l_ok"])
 
-                    if st.button(STR["ed_reset"], key="ed_reset"):
+                    if st.button(STR["ed_reset"], icon=":material/restart_alt:", key="ed_reset"):
                         st.session_state["dados_m1"] = gerar_dados_m1_offline(tema_m1, num_opcoes)
                         limpar_chaves_resposta_m1()
                         st.success(STR["ed_reset_ok"])
@@ -951,7 +1108,7 @@ with tab1:
         dados = st.session_state["dados_m1"]
         if not isinstance(dados, dict):
             st.error(STR["bad_data"])
-            if st.button(STR["fix_data"], key="fix_m1"):
+            if st.button(STR["fix_data"], icon=":material/delete:", key="fix_m1"):
                 st.session_state.pop("dados_m1", None)
                 st.rerun()
             st.stop()
@@ -1006,7 +1163,7 @@ with tab1:
             st.write(f"**{STR['exercicio']}{idx_l + 1}:** {frase}")
             respostas_lacunas[idx_l] = st.text_input(f"{STR['lacuna_label']}{idx_l + 1}:", key=f"lac_{idx_l}")
 
-        if st.button(STR["btn_submit_m1"], key="btn_validar_m1"):
+        if st.button(STR["btn_submit_m1"], icon=":material/check_circle:", key="btn_validar_m1"):
             st.divider()
             st.subheader(STR["result_sub"])
 
@@ -1062,7 +1219,7 @@ with tab2:
 
     tema_m2 = st.text_input(STR["tema_m2_label"], value="Sistemas Operativos e Gestão de Memória", key="tema_m2")
 
-    if not is_student and st.button(STR["btn_create_m2"], key="btn_m2"):
+    if not is_student and st.button(STR["btn_create_m2"], icon=":material/auto_awesome:", key="btn_m2"):
         with st.spinner(STR["spin_m2"]):
             limpar_respostas_antigas(prefixos=("assoc_",), extras=("def_baralhadas",))
             if offline:
@@ -1100,7 +1257,7 @@ with tab2:
         dados_m2 = st.session_state["dados_m2"]
         if not isinstance(dados_m2, dict):
             st.error(STR["bad_game"])
-            if st.button(STR["fix_data"], key="fix_m2"):
+            if st.button(STR["fix_data"], icon=":material/delete:", key="fix_m2"):
                 st.session_state.pop("dados_m2", None)
                 st.rerun()
             st.stop()
@@ -1138,7 +1295,7 @@ with tab2:
                         key=f"assoc_{idx}",
                     )
 
-            if st.button(STR["btn_check_m2"], key="btn_valida_m2"):
+            if st.button(STR["btn_check_m2"], icon=":material/check_circle:", key="btn_valida_m2"):
                 acertos = 0
                 for idx, p in enumerate(pares):
                     d_user = respostas_assoc.get(idx, STR["choose"])
@@ -1166,7 +1323,7 @@ with tab3:
         pergunta_manual = st.text_input(STR["q_teacher_label"], key="m3_pergunta_manual")
         keywords = st.text_input(STR["kw_label"], placeholder=STR["kw_ph"], key="m3_kw")
         resposta_off = st.text_area(STR["answer_label"], height=100, key="m3_resp_off")
-        if st.button(STR["btn_correct_off"], key="btn_m3_off"):
+        if st.button(STR["btn_correct_off"], icon=":material/check_circle:", key="btn_m3_off"):
             if not pergunta_manual.strip():
                 st.warning(STR["ask_question_first"])
             elif not keywords.strip():
@@ -1199,7 +1356,7 @@ with tab3:
                 pass
             st.warning(f"**{STR['generated_q']}** {st.session_state['pergunta_multimodal']}")
             resposta_aluno = st.text_area(STR["answer_label"], height=100, key="m3_resp_student")
-            if st.button(STR["btn_eval"], key="btn_corrigir_student"):
+            if st.button(STR["btn_eval"], icon=":material/smart_toy:", key="btn_corrigir_student"):
                 if resposta_aluno.strip():
                     with st.spinner(STR["spin_eval"]):
                         avaliar_resposta_aberta(
@@ -1231,7 +1388,7 @@ with tab3:
                     st.session_state["_img_id"] = img_id
                 st.image(image, caption=STR["img_caption"], width=450)
 
-                if st.button(STR["btn_gen_q"], key="btn_pergunta_img"):
+                if st.button(STR["btn_gen_q"], icon=":material/auto_awesome:", key="btn_pergunta_img"):
                     with st.spinner(STR["spin_img"]):
                         try:
                             resposta_questao = client.models.generate_content(
@@ -1255,7 +1412,7 @@ with tab3:
                     st.warning(f"**{STR['generated_q']}** {st.session_state['pergunta_multimodal']}")
                     resposta_aluno_aberta = st.text_area(STR["answer_label"], height=100, key="m3_resp_teacher")
 
-                    if st.button(STR["btn_eval"], key="btn_corrigir_aberta"):
+                    if st.button(STR["btn_eval"], icon=":material/smart_toy:", key="btn_corrigir_aberta"):
                         if resposta_aluno_aberta.strip():
                             with st.spinner(STR["spin_eval"]):
                                 avaliar_resposta_aberta(
@@ -1265,3 +1422,12 @@ with tab3:
                                 )
                         else:
                             st.warning(STR["need_answer"])
+
+
+# ----------------------------------------------------------
+# STATUS BAR (decorative retro chrome)
+# ----------------------------------------------------------
+st.markdown(
+    '<div class="mac-statusbar"><div>Ready <span class="cursor"></span></div><div>EduGen OS · Mem 640K</div></div>',
+    unsafe_allow_html=True,
+)

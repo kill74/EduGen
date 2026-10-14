@@ -332,12 +332,30 @@ class TestUX(unittest.TestCase):
 
     def test_contratos_emoji(self):
         src = SRC_PATH.read_text(encoding="utf-8")
-        # lógica depende destes prefixos emoji
-        self.assertIn('papel.startswith("🧑‍🎓")', src)
-        self.assertIn('modo.startswith("📴")', src)
+        # lógica depende destes prefixos de ícone
+        self.assertIn('papel.startswith(":material/backpack:")', src)
+        self.assertIn('modo.startswith(":material/cloud_off:")', src)
         for lang, d in H["STRINGS"].items():
-            self.assertTrue(d["role_student"].startswith("🧑‍🎓"), lang)
-            self.assertTrue(d["mode_offline"].startswith("📴"), lang)
+            self.assertTrue(d["role_student"].startswith(":material/backpack:"), lang)
+            self.assertTrue(d["mode_offline"].startswith(":material/cloud_off:"), lang)
+
+    def test_strings_sem_emojis(self):
+        import re as _re
+
+        padrao = _re.compile(r'[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF]')
+        for lang, d in H["STRINGS"].items():
+            for k, v in d.items():
+                self.assertIsNone(
+                    padrao.search(v), f"emoji em {lang}.{k}: {v[:40]}"
+                )
+
+    def test_app_inteira_sem_emojis(self):
+        import re as _re
+
+        src = SRC_PATH.read_text(encoding="utf-8")
+        # fora STRINGS só pode haver escapes (ex. \2713 no CSS), nunca o caráter
+        achados = _re.findall(r'[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF]', src)
+        self.assertEqual(achados, [], f"emojis na UI: {achados[:5]}")
 
     def test_gating_aluno_existe(self):
         src = SRC_PATH.read_text(encoding="utf-8")
@@ -367,6 +385,32 @@ class TestUX(unittest.TestCase):
         src = SRC_PATH.read_text(encoding="utf-8")
         self.assertNotIn("A resposta do modelo não é um objeto JSON válido.", src.split("STRINGS")[0])
         self.assertNotIn('st.error(f"Erro ao configurar a API do Gemini', src)
+
+
+class TestRetroTheme(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.root = SRC_PATH.parent
+        cls.cfg = (cls.root / ".streamlit" / "config.toml").read_text(encoding="utf-8")
+        cls.src = SRC_PATH.read_text(encoding="utf-8")
+
+    def test_config_locked_single_look(self):
+        self.assertIn('base = "light"', self.cfg)
+        self.assertNotIn("[theme.dark]", self.cfg)
+
+    def test_config_retro_tokens(self):
+        for token in ('baseRadius = "0px"', 'buttonRadius = "0px"', "VT323", "showWidgetBorder = true"):
+            self.assertIn(token, self.cfg)
+
+    def test_css_uses_own_classes_only(self):
+        self.assertIn("mac-menubar", self.src)
+        self.assertIn("mac-window", self.src)
+        self.assertIn("mac-statusbar", self.src)
+        self.assertNotIn("emotion-cache", self.src)
+
+    def test_no_external_images(self):
+        self.assertNotIn("img.icons8.com", self.src)
+        self.assertNotIn("http", self.src.split("<style>")[1].split("</style>")[0])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,39 @@
+# EduGen OS — locked retro (Mac System 6) look.
+# Single appearance: no light/dark toggle. Pixel type via VT323.
+
+[theme]
+base = "light"
+primaryColor = "#000000"
+backgroundColor = "#D7D7D7"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#111111"
+borderColor = "#111111"
+linkColor = "#111111"
+codeBackgroundColor = "#FFFFFF"
+codeTextColor = "#111111"
+font = "'VT323':https://fonts.googleapis.com/css2?family=VT323&display=swap"
+headingFont = "'VT323':https://fonts.googleapis.com/css2?family=VT323&display=swap"
+baseFontSize = 18
+metricValueFontSize = "2.5rem"
+baseRadius = "0px"
+buttonRadius = "0px"
+showWidgetBorder = true
+showSidebarBorder = true
+linkUnderline = true
+paddingTop = "0.5rem"
+paddingBottom = "2rem"
+
+[theme.sidebar]
+backgroundColor = "#C9C9C9"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#111111"
+borderColor = "#111111"
+primaryColor = "#000000"
+linkColor = "#111111"
+showWidgetBorder = true
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
