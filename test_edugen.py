@@ -324,6 +324,16 @@ class TestUX(unittest.TestCase):
         self.assertEqual(set(strings["pt"].keys()), set(strings["en"].keys()))
         self.assertGreater(len(strings["pt"]), 50)
 
+    def test_todas_as_chaves_str_existem(self):
+        import re as _re
+
+        src = SRC_PATH.read_text(encoding="utf-8")
+        usadas = set(_re.findall(r"STR\[[\"']([A-Za-z0-9_]+)[\"']\]", src))
+        self.assertGreater(len(usadas), 100)
+        for lang in ("pt", "en"):
+            faltam = usadas - set(H["STRINGS"][lang].keys())
+            self.assertEqual(faltam, set(), f"STR[...] sem texto em {lang}: {sorted(faltam)}")
+
     def test_strings_sem_vazias(self):
         for lang, d in H["STRINGS"].items():
             for k, v in d.items():
@@ -499,10 +509,53 @@ class TestModelosEstatico(unittest.TestCase):
         self.assertIn('key="modelo"', src)
         self.assertIn("MODELOS_RECOMENDADOS", src)
 
+    def test_widgets_estaveis_na_troca_de_idioma(self):
+        # sem key estável, o Streamlit recria o widget quando o label muda de
+        # idioma e o valor escrito (chave API / upload) perde-se
+        src = SRC_PATH.read_text(encoding="utf-8")
+        self.assertIn('key="api_key_input"', src)
+        self.assertIn('key="m3_upload"', src)
+
     def test_dica_404_nos_erros(self):
         src = SRC_PATH.read_text(encoding="utf-8")
         self.assertIn("modelo_indisponivel(e)", src)
         self.assertGreaterEqual(src.count("modelo_indisponivel(e)"), 3)
+
+
+class TestBancosOffline(unittest.TestCase):
+    def test_banco_m1_estrutura(self):
+        for base in (H["BANCO_M1_ADN"], H["BANCO_M1_SO"]):
+            self.assertIsInstance(base["texto_explicativo"], str)
+            self.assertTrue(base["texto_explicativo"].strip())
+            for q in base["perguntas"]:
+                self.assertTrue(H["pergunta_valida"](q), q)
+            for lac in base["fill_in_the_blank"]:
+                self.assertIsInstance(lac.get("frase"), str)
+                self.assertIn("[___]", lac["frase"])
+                self.assertTrue(str(lac.get("palavra_oculta", "")).strip())
+
+    def test_banco_m2_estrutura(self):
+        for banco in (H["BANCO_M2_SO"], H["BANCO_M2_ADN"]):
+            self.assertGreaterEqual(len(banco), 4)
+            for p in banco:
+                self.assertTrue(H["par_valido"](p), p)
+
+    def test_gerador_m1_todos_os_num_opcoes(self):
+        for n in (2, 3, 4, 5, 6):
+            for tema in ("ADN", "Sistemas Operativos"):
+                d = H["gerar_dados_m1_offline"](tema, n)
+                for q in d["perguntas"]:
+                    self.assertTrue(H["pergunta_valida"](q), (tema, n, q))
+            dg = H["gerar_dados_m1_offline"]("História", n)
+            self.assertTrue(dg.get("_demo_generico"))
+            for q in dg["perguntas"]:
+                self.assertTrue(H["pergunta_valida"](q), (n, q))
+
+    def test_gerador_m2_devolve_copias(self):
+        d1 = H["gerar_dados_m2_offline"]("ADN")
+        d1["pares"][0]["conceito"] = "MUTADO"
+        d2 = H["gerar_dados_m2_offline"]("ADN")
+        self.assertNotEqual(d2["pares"][0]["conceito"], "MUTADO")
 
 
 class TestRetroTheme(unittest.TestCase):

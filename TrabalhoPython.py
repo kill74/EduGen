@@ -966,6 +966,7 @@ with st.sidebar:
             value=chave_sugerida,
             type="password",
             help=STR["api_key_help"],
+            key="api_key_input",
         )
 
         if not GEMINI_LIB_DISPONIVEL:
@@ -1027,8 +1028,16 @@ def menu_go(widget_key: str, value: str):
 
 
 def menu_novo():
-    """File > Novo: limpa recursos, respostas e pergunta multimodal."""
-    for k in ("dados_m1", "dados_m2", "pergunta_multimodal", "img_bytes", "_img_id"):
+    """File > Novo: limpa recursos, respostas, imagem e pergunta multimodal."""
+    for k in (
+        "dados_m1",
+        "dados_m2",
+        "pergunta_multimodal",
+        "img_bytes",
+        "_img_id",
+        "m3_upload",
+        "def_baralhadas",
+    ):
         st.session_state.pop(k, None)
     limpar_respostas_antigas()
 
@@ -1328,7 +1337,10 @@ with tab1:
             lacunas = []
 
         st.subheader(STR["texto_sub"])
-        st.info(dados.get("texto_explicativo", STR["no_text"]))
+        texto_m1 = dados.get("texto_explicativo") or ""
+        if not isinstance(texto_m1, str):
+            texto_m1 = str(texto_m1)
+        st.info(texto_m1 or STR["no_text"])
 
         st.subheader(STR["quiz_sub"])
         respostas_aluno_m1 = {}
@@ -1565,7 +1577,7 @@ with tab3:
         else:
             st.info(STR["student_no_data"])
     else:
-        uploaded_file = st.file_uploader(STR["upload_label"], type=["jpg", "jpeg", "png"])
+        uploaded_file = st.file_uploader(STR["upload_label"], type=["jpg", "jpeg", "png"], key="m3_upload")
 
         if uploaded_file is not None:
             try:
