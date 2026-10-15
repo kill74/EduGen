@@ -52,4 +52,7 @@ requirements.txt    # dependências
 
 ## ⚙️ Modelos
 
-`gemini-2.0-flash` (recomendado) · `gemini-2.5-flash` · `gemini-1.5-flash` · `gemini-1.5-pro`
+A lista de modelos é obtida automaticamente da tua chave API (nunca fica desatualizada).
+Recomendados: `gemini-3.8-flash` (mais recente) · `gemini-3.5-flash-lite` (muito económico) ·
+`gemini-3.1-flash-lite` · `gemini-2.5-flash` (chaves antigas).
+Os nomes `gemini-1.5-*` e `gemini-2.0-*` foram desligados pela Google e já não existem na API.

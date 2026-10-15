@@ -425,6 +425,86 @@ class TestValidacao(unittest.TestCase):
         self.assertFalse(H["par_valido"](None))
 
 
+class TestModelosGemini(unittest.TestCase):
+    def test_recomendados_sao_strings_validas(self):
+        for m in H["MODELOS_RECOMENDADOS"]:
+            self.assertIsInstance(m, str)
+            self.assertTrue(m)
+
+    def test_ordenar_recomendados_primeiro(self):
+        r = H["ordenar_modelos"](
+            ["gemini-2.5-flash", "gemini-z", "gemini-3.8-flash", "gemini-3.5-flash-lite"]
+        )
+        self.assertEqual(
+            r[:3], ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"]
+        )
+        self.assertEqual(r[3], "gemini-z")
+
+    def test_ordenar_sem_duplicados_vazios_ou_limite(self):
+        ordenar = H["ordenar_modelos"]
+        self.assertEqual(ordenar(["a", "a", "", None, 42, "b"]), ["a", "b"])
+        self.assertEqual(len(ordenar([f"m{i}" for i in range(50)])), 30)
+
+    def test_ordenar_vazio(self):
+        self.assertEqual(H["ordenar_modelos"](None), [])
+
+    def test_listar_modelos_filtra_sem_generate_content(self):
+        class FakeModels:
+            def list(self):
+                class M:
+                    def __init__(self, name, acoes):
+                        self.name = name
+                        self.supported_actions = acoes
+
+                return [
+                    M("models/gemini-3.8-flash", ["generateContent"]),
+                    M("models/gemini-embed", ["embedContent"]),
+                    M("models/gemini-sem-acoes", []),
+                ]
+
+        class FakeClient:
+            models = FakeModels()
+
+        self.assertEqual(
+            H["listar_modelos_disponiveis"](FakeClient()),
+            ["gemini-3.8-flash", "gemini-sem-acoes"],
+        )
+
+    def test_listar_falha_devolve_none(self):
+        class FakeClient:
+            class models:
+                @staticmethod
+                def list():
+                    raise RuntimeError("sem rede")
+
+        self.assertIsNone(H["listar_modelos_disponiveis"](FakeClient()))
+
+    def test_modelo_indisponivel(self):
+        m = H["modelo_indisponivel"]
+        self.assertTrue(m("404 NOT_FOUND: models/gemini-1.5-pro is not found"))
+        self.assertTrue(m(RuntimeError("This model is no longer available")))
+        self.assertFalse(m("429 RESOURCE_EXHAUSTED: quota"))
+
+
+class TestModelosEstatico(unittest.TestCase):
+    def test_sem_modelos_retirados_no_fonte(self):
+        src = SRC_PATH.read_text(encoding="utf-8")
+        for morto in ("gemini-1.5", "gemini-2.0"):
+            self.assertNotIn(morto, src, f"{morto} já foi desligado pela Google")
+
+    def test_sidebar_lista_modelos_da_chave(self):
+        src = SRC_PATH.read_text(encoding="utf-8")
+        self.assertIn("listar_modelos_disponiveis(client)", src)
+        self.assertIn("ordenar_modelos", src)
+        self.assertIn('key="modelo"', src)
+        self.assertIn("MODELOS_RECOMENDADOS", src)
+
+    def test_dica_404_nos_erros(self):
+        src = SRC_PATH.read_text(encoding="utf-8")
+        self.assertIn("modelo_indisponivel(e)", src)
+        self.assertGreaterEqual(src.count("modelo_indisponivel(e)"), 3)
+
+
 class TestRetroTheme(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

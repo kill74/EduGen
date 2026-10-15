@@ -566,14 +566,17 @@ STRINGS = {
         "mode_offline": ":material/cloud_off: Offline / Demo (sem chave)",
         "mode_help": "O modo Offline usa um banco local de exemplos e correção sem IA. Ideal para demonstrações sem internet/chave.",
         "model_label": "Modelo de IA Generativa:",
-        "model_help": "gemini-2.0-flash é o recomendado (rápido e económico). 1.5-* mantidos por compatibilidade.",
+        "model_help": "A lista é obtida da tua própria chave. Recomendados: gemini-3.8-flash (mais recente) ou gemini-3.5-flash-lite (muito económico); gemini-2.5-* para chaves antigas.",
         "model_info": "O modelo Flash é recomendado para rapidez/custo; o Pro para raciocínio analítico.",
         "offline_info": ":material/cloud_off: Modo Offline: sem chamadas à API. Módulos 1 e 2 usam banco local; Módulo 3 usa pergunta manual + palavras-chave.",
         "online_cfg": "Configure o acesso à API do Google Gemini.",
         "api_key_label": "Chave API do Gemini:",
         "api_key_help": "Insira a sua chave API do Google AI Studio. Pode também definir GEMINI_API_KEY nos Secrets.",
         "lib_missing": "Biblioteca `google-genai` não instalada. Corra: `pip install google-genai`",
-        "client_ok": "Cliente inicializado. (A validade da chave é confirmada na primeira chamada.)",
+        "client_ok": "Ligação validada: lista de modelos obtida da tua conta.",
+        "model_list_fallback": "Não foi possível listar os modelos da chave (rede ou chave inválida?). A mostrar modelos recomendados.",
+        "model_404_hint": "O modelo escolhido já não existe para esta chave — escolhe outro na barra lateral.",
+        "gemini_call_err": "Falha na chamada ao Gemini",
         "waiting_key": "Aguardando chave API...",
         "need_key": ":material/arrow_forward: Insira a sua chave API do Gemini na barra lateral **ou** mude para o modo :material/cloud_off: Offline/Demo.",
         "offline_banner": ":material/cloud_off: Está no **modo Offline/Demo**: funciona **sem chave Gemini**, com exemplos locais e correção automática simples (sem IA).",
@@ -717,14 +720,17 @@ STRINGS = {
         "mode_offline": ":material/cloud_off: Offline / Demo (no key)",
         "mode_help": "Offline mode uses a local bank of examples and non-AI correction. Ideal for demos without internet/key.",
         "model_label": "Generative AI Model:",
-        "model_help": "gemini-2.0-flash is recommended (fast and cheap). 1.5-* kept for compatibility.",
+        "model_help": "The list is fetched from your own key. Recommended: gemini-3.8-flash (latest) or gemini-3.5-flash-lite (very cheap); gemini-2.5-* for older keys.",
         "model_info": "The Flash model is recommended for speed/cost; Pro for analytical reasoning.",
         "offline_info": ":material/cloud_off: Offline mode: no API calls. Modules 1 and 2 use a local bank; Module 3 uses manual question + keywords.",
         "online_cfg": "Configure Google Gemini API access.",
         "api_key_label": "Gemini API Key:",
         "api_key_help": "Enter your Google AI Studio API key. You can also set GEMINI_API_KEY in Secrets.",
         "lib_missing": "Library `google-genai` not installed. Run: `pip install google-genai`",
-        "client_ok": "Client initialized. (Key validity is confirmed on the first call.)",
+        "client_ok": "Connection validated: model list fetched from your account.",
+        "model_list_fallback": "Couldn't fetch the model list for this key (network or invalid key?). Showing recommended models.",
+        "model_404_hint": "The selected model no longer exists for this key — pick another one in the sidebar.",
+        "gemini_call_err": "Gemini call failed",
         "waiting_key": "Waiting for API key...",
         "need_key": ":material/arrow_forward: Enter your Gemini API key in the sidebar **or** switch to :material/cloud_off: Offline/Demo mode.",
         "offline_banner": ":material/cloud_off: You are in **Offline/Demo mode**: works **without a Gemini key**, with local examples and simple automatic correction (no AI).",
@@ -862,6 +868,48 @@ STRINGS = {
 }
 
 
+# ---- Modelos Gemini: recomendados + lista real obtida da chave ----
+# (os nomes mudam com o tempo — a app lista os modelos da própria chave
+# e usa esta lista apenas como ordenação/preferência e fallback)
+MODELOS_RECOMENDADOS = [
+    "gemini-3.8-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-2.5-flash",
+]
+
+
+def ordenar_modelos(disponiveis, limite: int = 30) -> list:
+    """Recomendados primeiro (na ordem definida), restantes por ordem alfabética."""
+    unicos = []
+    for m in disponiveis or []:
+        if isinstance(m, str) and m and m not in unicos:
+            unicos.append(m)
+    pref = [m for m in MODELOS_RECOMENDADOS if m in unicos]
+    resto = sorted(m for m in unicos if m not in pref)
+    return (pref + resto)[:limite]
+
+
+def listar_modelos_disponiveis(client) -> list | None:
+    """Modelos com generateContent visíveis para a chave; None se não for possível listar."""
+    try:
+        nomes = []
+        for m in client.models.list():
+            nome = str(getattr(m, "name", "") or "").removeprefix("models/")
+            acoes = getattr(m, "supported_actions", None) or []
+            if nome and (not acoes or "generateContent" in acoes):
+                nomes.append(nome)
+        return nomes or None
+    except Exception:
+        return None
+
+
+def modelo_indisponivel(erro) -> bool:
+    """True se o erro for de modelo inexistente/retirado (404 NOT_FOUND)."""
+    t = str(erro).lower()
+    return "not_found" in t or "not found" in t or "no longer available" in t
+
+
 # ==========================================================
 # BARRA LATERAL - IDIOMA, PAPEL E MODO ONLINE / OFFLINE
 # ==========================================================
@@ -899,13 +947,7 @@ with st.sidebar:
 
     client = None
     api_key = ""
-    modelo_selecionado = st.selectbox(
-        STR["model_label"],
-        ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"],
-        index=0,
-        disabled=offline,
-        help=STR["model_help"],
-    )
+    modelo_selecionado = MODELOS_RECOMENDADOS[0]
 
     if offline:
         st.info(STR["offline_info"])
@@ -931,10 +973,36 @@ with st.sidebar:
         elif api_key:
             try:
                 client = genai.Client(api_key=api_key)
-                st.success(STR["client_ok"])
             except Exception as exc:
                 st.error(f"{STR['client_err']}{exc}")
                 client = None
+
+            if client is not None:
+                # A lista de modelos vem da própria chave (em cache por chave):
+                # nunca fica desatualizada como uma lista fixa. Sem lista,
+                # apresenta-se os recomendados.
+                if st.session_state.get("_modelos_para") != api_key:
+                    listados = listar_modelos_disponiveis(client)
+                    st.session_state["_modelos_para"] = api_key
+                    st.session_state["_modelos_lista"] = (
+                        ordenar_modelos(listados) if listados else list(MODELOS_RECOMENDADOS)
+                    )
+                    st.session_state["_modelos_fallback"] = listados is None
+                    if st.session_state.get("modelo") not in st.session_state["_modelos_lista"]:
+                        st.session_state["modelo"] = st.session_state["_modelos_lista"][0]
+
+                if st.session_state.get("_modelos_fallback"):
+                    st.warning(STR["model_list_fallback"])
+                else:
+                    st.success(STR["client_ok"])
+
+                modelo_selecionado = st.selectbox(
+                    STR["model_label"],
+                    st.session_state["_modelos_lista"],
+                    index=0,
+                    key="modelo",
+                    help=STR["model_help"],
+                )
         else:
             st.warning(STR["waiting_key"])
 
@@ -1048,7 +1116,8 @@ def gerar_com_gemini(prompt, usar_json: bool = False):
         res = client.models.generate_content(model=model_name, contents=prompt, config=cfg)
         return res.text
     except Exception as e:
-        raise RuntimeError(f"Falha na chamada ao Gemini ({model_name}): {e}") from e
+        dica = f" {STR['model_404_hint']}" if modelo_indisponivel(e) else ""
+        raise RuntimeError(f"{STR['gemini_call_err']} ({model_name}): {e}{dica}") from e
 
 
 def avaliar_resposta_aberta(img_bytes: bytes, pergunta: str, resposta: str):
@@ -1104,7 +1173,8 @@ def avaliar_resposta_aberta(img_bytes: bytes, pergunta: str, resposta: str):
             st.metric(STR["score"], f"{nota}%")
         st.markdown(f"**{STR['feedback_ia']}** {dados_corr.get('feedback_pedagogico', '')}")
     except Exception as e:
-        st.error(f"{STR['eval_err']}{e}")
+        dica = f" {STR['model_404_hint']}" if modelo_indisponivel(e) else ""
+        st.error(f"{STR['eval_err']}{e}{dica}")
 
 
 # ==========================================================
@@ -1532,7 +1602,8 @@ with tab3:
                             else:
                                 st.session_state["pergunta_multimodal"] = pergunta_gerada
                         except Exception as e:
-                            st.error(f"{STR['gen_q_err']}{e}")
+                            dica = f" {STR['model_404_hint']}" if modelo_indisponivel(e) else ""
+                            st.error(f"{STR['gen_q_err']}{e}{dica}")
 
                 if "pergunta_multimodal" in st.session_state:
                     st.warning(f"**{STR['generated_q']}** {st.session_state['pergunta_multimodal']}")
