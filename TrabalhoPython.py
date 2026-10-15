@@ -29,176 +29,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown(
-    """
-<style>
-    /* ============ EduGen OS: retro System 6 chrome (own classes only) ============ */
-    .st-key-menu_brand button,
-    .st-key-menu_file button,
-    .st-key-menu_edit button,
-    .st-key-menu_view button,
-    .st-key-menu_special button {
-        font-size: 1.35rem;
-    }
-    .mac-window {
-        background: #FFFFFF;
-        border: 2px solid #111111;
-        box-shadow: 5px 5px 0 #111111;
-        margin-bottom: 1.2rem;
-    }
-    .mac-titlebar {
-        height: 30px;
-        background: repeating-linear-gradient(
-            to bottom,
-            #111111 0px, #111111 2px,
-            #FFFFFF 2px, #FFFFFF 5px
-        );
-        border-bottom: 2px solid #111111;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .mac-title {
-        background: #FFFFFF;
-        border: 2px solid #111111;
-        padding: 0 14px;
-        font-size: 1.4rem;
-        font-weight: 700;
-        line-height: 1.2;
-    }
-    .mac-body {
-        padding: 1rem 1.2rem;
-    }
-    .mac-body .main-header {
-        font-size: 1.9rem;
-        font-weight: 700;
-        margin-bottom: 0.2rem;
-    }
-    .mac-body .sub-header {
-        font-size: 1.25rem;
-    }
-    .mac-statusbar {
-        display: flex;
-        justify-content: space-between;
-        background: #FFFFFF;
-        border-top: 3px solid #111111;
-        padding: 0.3rem 1rem;
-        font-size: 1.15rem;
-        margin-top: 2rem;
-    }
-    .mac-statusbar .cursor {
-        display: inline-block;
-        width: 0.6em;
-        height: 1.1em;
-        background: #111111;
-        vertical-align: text-bottom;
-        animation: mac-blink 1.1s steps(1) infinite;
-    }
-    @keyframes mac-blink {
-        50% { opacity: 0; }
-    }
-    .mac-panel-title {
-        background: repeating-linear-gradient(
-            to bottom,
-            #111111 0px, #111111 2px,
-            #FFFFFF 2px, #FFFFFF 5px
-        );
-        border: 2px solid #111111;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 0.8rem;
-    }
-    .mac-panel-title span {
-        background: #FFFFFF;
-        border-left: 2px solid #111111;
-        border-right: 2px solid #111111;
-        padding: 0 12px;
-        font-size: 1.3rem;
-        font-weight: 700;
-    }
-    .correct-badge {
-        background: #111111;
-        color: #FFFFFF;
-        border: 2px solid #111111;
-        box-shadow: 3px 3px 0 #888888;
-        padding: 0.5rem 1rem;
-        font-weight: 700;
-        font-size: 1.2rem;
-    }
-    .correct-badge::before {
-        content: "\\2713  ";
-    }
-    .incorrect-badge {
-        background: #FFFFFF;
-        color: #111111;
-        border: 2px solid #111111;
-        box-shadow: 3px 3px 0 #888888;
-        padding: 0.5rem 1rem;
-        font-weight: 700;
-        font-size: 1.2rem;
-    }
-    .incorrect-badge::before {
-        content: "\\2717  ";
-    }
-    /* Beveled 1-bit buttons + square inputs (stable widget hooks only) */
-    div[data-testid="stButton"] button,
-    div[data-testid="stBaseButton-primary"] button,
-    div[data-testid="stBaseButton-secondary"] button {
-        background: #FFFFFF;
-        color: #111111;
-        border: 2px solid #111111;
-        border-radius: 0;
-        box-shadow: 3px 3px 0 #111111;
-        font-size: 1.2rem;
-    }
-    div[data-testid="stButton"] button:active,
-    div[data-testid="stBaseButton-primary"] button:active,
-    div[data-testid="stBaseButton-secondary"] button:active {
-        transform: translate(2px, 2px);
-        box-shadow: 1px 1px 0 #111111;
-    }
-    div[data-testid="stBaseButton-primary"] button {
-        background: #111111;
-        color: #FFFFFF;
-    }
-    div[data-testid="stTextInput"] input,
-    div[data-testid="stNumberInput"] input,
-    div[data-testid="stTextArea"] textarea {
-        border: 2px solid #111111;
-        border-radius: 0;
-        background: #FFFFFF;
-    }
-    div[data-testid="stSelectbox"] > div {
-        border: 2px solid #111111;
-        border-radius: 0;
-        background: #FFFFFF;
-    }
-    div[data-testid="stExpander"] {
-        border: 2px solid #111111;
-        border-radius: 0;
-        background: #FFFFFF;
-    }
-    hr {
-        border: none;
-        border-top: 2px solid #111111;
-        margin: 1rem 0;
-    }
-    input[type="radio"], input[type="checkbox"] {
-        accent-color: #111111;
-    }
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
-
-# Aplica trocas de idioma/papel/modo pedidas via menu bar.
-# Corre antes de qualquer widget: definir estes valores aqui é seguro.
-if "_pending_widget" in st.session_state:
-    _pk, _pv = st.session_state.pop("_pending_widget")
-    st.session_state[_pk] = _pv
-
 
 # ==========================================================
 # FUNÇÕES AUXILIARES (robustez + modo offline)
@@ -567,7 +397,6 @@ STRINGS = {
         "mode_help": "O modo Offline usa um banco local de exemplos e correção sem IA. Ideal para demonstrações sem internet/chave.",
         "model_label": "Modelo de IA Generativa:",
         "model_help": "A lista é obtida da tua própria chave. Recomendados: gemini-3.8-flash (mais recente) ou gemini-3.5-flash-lite (muito económico); gemini-2.5-* para chaves antigas.",
-        "model_info": "O modelo Flash é recomendado para rapidez/custo; o Pro para raciocínio analítico.",
         "offline_info": ":material/cloud_off: Modo Offline: sem chamadas à API. Módulos 1 e 2 usam banco local; Módulo 3 usa pergunta manual + palavras-chave.",
         "online_cfg": "Configure o acesso à API do Google Gemini.",
         "api_key_label": "Chave API do Gemini:",
@@ -696,20 +525,8 @@ STRINGS = {
         "ed_l_nomarker": "A frase deve conter o marcador [___].",
         "ed_reset": "Repor base demo",
         "ed_reset_ok": "Base demo reposta.",
-        "menu_about": "Sobre o EduGen OS",
-        "menu_new": "Novo",
-        "menu_clear_answers": "Limpar respostas",
-        "menu_clear_data": "Apagar recursos",
-        "menu_to_pt": "Português",
-        "menu_to_en": "English",
-        "menu_to_teacher": "Professor",
-        "menu_to_student": "Aluno",
-        "menu_to_online": "Online",
-        "menu_to_offline": "Offline",
-        "menu_restart": "Reiniciar sessão",
-        "about_title": "Sobre o EduGen OS",
-        "about_body": "**EduGen OS 1.0** — edição retro.\n\nGerador e avaliador educativo com IA (Gemini) e modo offline sem chave.\n\n- Módulos 1, 2 e 3: conteúdo, jogo e avaliação multimodal\n- Papéis Professor/Aluno · PT/EN",
-        "about_close": "Fechar",
+        "model_quota_hint": "A quota diária deste modelo esgotou na tua chave gratuita — escolhe um modelo Flash na barra lateral ou tenta mais tarde.",
+        "model_switch": "O modelo '{antigo}' atingiu a quota. Mudei automaticamente para '{novo}' e continuei — podes mudar quando quiseres na barra lateral.",
     },
     "en": {
         "role_label": "Role:",
@@ -721,7 +538,6 @@ STRINGS = {
         "mode_help": "Offline mode uses a local bank of examples and non-AI correction. Ideal for demos without internet/key.",
         "model_label": "Generative AI Model:",
         "model_help": "The list is fetched from your own key. Recommended: gemini-3.8-flash (latest) or gemini-3.5-flash-lite (very cheap); gemini-2.5-* for older keys.",
-        "model_info": "The Flash model is recommended for speed/cost; Pro for analytical reasoning.",
         "offline_info": ":material/cloud_off: Offline mode: no API calls. Modules 1 and 2 use a local bank; Module 3 uses manual question + keywords.",
         "online_cfg": "Configure Google Gemini API access.",
         "api_key_label": "Gemini API Key:",
@@ -850,20 +666,8 @@ STRINGS = {
         "ed_l_nomarker": "The sentence must contain the [___] marker.",
         "ed_reset": "Restore demo base",
         "ed_reset_ok": "Demo base restored.",
-        "menu_about": "About EduGen OS",
-        "menu_new": "New",
-        "menu_clear_answers": "Clear answers",
-        "menu_clear_data": "Delete resources",
-        "menu_to_pt": "Português",
-        "menu_to_en": "English",
-        "menu_to_teacher": "Teacher",
-        "menu_to_student": "Student",
-        "menu_to_online": "Online",
-        "menu_to_offline": "Offline",
-        "menu_restart": "Restart session",
-        "about_title": "About EduGen OS",
-        "about_body": "**EduGen OS 1.0** — retro edition.\n\nAI-powered (Gemini) teaching generator and evaluator with keyless offline mode.\n\n- Modules 1, 2 and 3: content, game and multimodal assessment\n- Teacher/Student roles · PT/EN",
-        "about_close": "Close",
+        "model_quota_hint": "This model's daily quota is exhausted on your free key — pick a Flash model in the sidebar or try again later.",
+        "model_switch": "Model '{antigo}' hit its quota. I switched automatically to '{novo}' and continued — you can change it anytime in the sidebar.",
     },
 }
 
@@ -874,19 +678,27 @@ STRINGS = {
 MODELOS_RECOMENDADOS = [
     "gemini-3.8-flash",
     "gemini-3.5-flash-lite",
+    "gemini-3.6-flash",
     "gemini-3.1-flash-lite",
+    "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
 ]
 
 
+def _modelo_pro(nome: str) -> int:
+    """Chave de ordenação: 1 para Pro/preview (sem quota gratuita) — vão para o fim."""
+    n = str(nome).lower()
+    return 1 if ("pro" in n or "preview" in n or "exp" in n) else 0
+
+
 def ordenar_modelos(disponiveis, limite: int = 30) -> list:
-    """Recomendados primeiro (na ordem definida), restantes por ordem alfabética."""
+    """Recomendados primeiro; Pro/preview no fim; restantes por ordem alfabética."""
     unicos = []
     for m in disponiveis or []:
         if isinstance(m, str) and m and m not in unicos:
             unicos.append(m)
     pref = [m for m in MODELOS_RECOMENDADOS if m in unicos]
-    resto = sorted(m for m in unicos if m not in pref)
+    resto = sorted((m for m in unicos if m not in pref), key=lambda m: (_modelo_pro(m), m))
     return (pref + resto)[:limite]
 
 
@@ -910,14 +722,61 @@ def modelo_indisponivel(erro) -> bool:
     return "not_found" in t or "not found" in t or "no longer available" in t
 
 
+def erro_quota(erro) -> bool:
+    """True se o erro for de quota/limite esgotado (429 RESOURCE_EXHAUSTED)."""
+    t = str(erro).lower()
+    return "429" in t or "resource_exhausted" in t or "quota" in t or "rate limit" in t
+
+
+def _alternativas_modelo(escolhido: str, limite: int = 2) -> list:
+    """Alternativas não-Pro para tentar quando a quota do modelo escolhido esgota."""
+    disponiveis = st.session_state.get("_modelos_lista") or list(MODELOS_RECOMENDADOS)
+    return [m for m in disponiveis if m != escolhido and not _modelo_pro(m)][:limite]
+
+
+def chamar_gemini(contents, config=None):
+    """generate_content resiliente: se o modelo escolhido esgotar a quota (429),
+    tenta até 2 alternativas Flash e memoriza a troca para os próximos runs."""
+    global client, model_name
+    escolhido = model_name
+    primeiro_erro = None
+    for i, m in enumerate([escolhido] + _alternativas_modelo(escolhido)):
+        try:
+            res = client.models.generate_content(model=m, contents=contents, config=config)
+            if i > 0:
+                model_name = m
+                st.session_state["_modelo_trocado"] = (escolhido, m)
+                st.session_state["_modelo_pendente"] = m
+            return res
+        except Exception as e:
+            if primeiro_erro is None:
+                primeiro_erro = e
+            if not erro_quota(e):
+                raise
+    raise primeiro_erro
+
+
+def dica_modelo(erro) -> str:
+    """Sugestão a anexar à mensagem de erro: quota esgotada ou modelo inexistente."""
+    if erro_quota(erro):
+        return " " + STR["model_quota_hint"]
+    if modelo_indisponivel(erro):
+        return " " + STR["model_404_hint"]
+    return ""
+
+
+def mostrar_aviso_modelo():
+    """Mostra (uma única vez) o aviso de troca automática de modelo por quota."""
+    if "_modelo_trocado" in st.session_state:
+        antigo, novo = st.session_state.pop("_modelo_trocado")
+        st.warning(STR["model_switch"].format(antigo=antigo, novo=novo))
+
+
 # ==========================================================
 # BARRA LATERAL - IDIOMA, PAPEL E MODO ONLINE / OFFLINE
 # ==========================================================
 with st.sidebar:
-    st.markdown(
-        '<div class="mac-panel-title"><span>Control Panel</span></div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown("### EduGen")
 
     lang_nome = st.radio("Idioma / Language:", ["Português", "English"], index=0, key="lang")
     LANG = "en" if lang_nome == "English" else "pt"
@@ -997,6 +856,12 @@ with st.sidebar:
                 else:
                     st.success(STR["client_ok"])
 
+                # Troca automática pós-quota: o valor do widget só pode ser
+                # escrito antes de este ser instanciado (por isso é adiado).
+                pend = st.session_state.pop("_modelo_pendente", None)
+                if pend in (st.session_state.get("_modelos_lista") or []):
+                    st.session_state["modelo"] = pend
+
                 modelo_selecionado = st.selectbox(
                     STR["model_label"],
                     st.session_state["_modelos_lista"],
@@ -1007,106 +872,11 @@ with st.sidebar:
         else:
             st.warning(STR["waiting_key"])
 
-    st.divider()
-    if not offline:
-        st.info(STR["model_info"])
-
 # ==========================================================
-# MENU BAR FUNCIONAL (EduGen OS / File / Edit / View / Special)
+# CABEÇALHO
 # ==========================================================
-@st.dialog(STR["about_title"])
-def about_dialog():
-    st.markdown(STR["about_body"])
-    if st.button(STR["about_close"], key="about_close", icon=":material/close:"):
-        st.rerun()
-
-
-def menu_go(widget_key: str, value: str):
-    """Troca idioma/papel/modo via menu; aplica no próximo run (antes dos widgets)."""
-    st.session_state["_pending_widget"] = (widget_key, value)
-    st.rerun()
-
-
-def menu_novo():
-    """File > Novo: limpa recursos, respostas, imagem e pergunta multimodal."""
-    for k in (
-        "dados_m1",
-        "dados_m2",
-        "pergunta_multimodal",
-        "img_bytes",
-        "_img_id",
-        "m3_upload",
-        "def_baralhadas",
-    ):
-        st.session_state.pop(k, None)
-    limpar_respostas_antigas()
-
-
-c_brand, c_file, c_edit, c_view, c_special, c_ver = st.columns(
-    [1.5, 0.7, 0.7, 0.8, 0.9, 1.4], vertical_alignment="center"
-)
-with c_brand:
-    ch_brand = st.menu_button("EduGen OS", [STR["menu_about"]], type="tertiary", key="menu_brand")
-with c_file:
-    ch_file = st.menu_button("File", [STR["menu_new"]], type="tertiary", key="menu_file")
-with c_edit:
-    ch_edit = st.menu_button(
-        "Edit",
-        [STR["menu_clear_answers"], STR["menu_clear_data"]],
-        type="tertiary",
-        key="menu_edit",
-    )
-with c_view:
-    ch_view = st.menu_button(
-        "View",
-        [
-            STR["menu_to_pt"],
-            STR["menu_to_en"],
-            STR["menu_to_teacher"],
-            STR["menu_to_student"],
-            STR["menu_to_online"],
-            STR["menu_to_offline"],
-        ],
-        type="tertiary",
-        key="menu_view",
-    )
-with c_special:
-    ch_special = st.menu_button("Special", [STR["menu_restart"]], type="tertiary", key="menu_special")
-with c_ver:
-    st.markdown('<div style="text-align: right;">System 6.0.8</div>', unsafe_allow_html=True)
-
-if ch_brand == STR["menu_about"]:
-    about_dialog()
-elif ch_file == STR["menu_new"]:
-    menu_novo()
-elif ch_edit == STR["menu_clear_answers"]:
-    limpar_respostas_antigas()
-elif ch_edit == STR["menu_clear_data"]:
-    st.session_state.pop("dados_m1", None)
-    st.session_state.pop("dados_m2", None)
-    limpar_respostas_antigas()
-elif ch_view in (STR["menu_to_pt"], STR["menu_to_en"]):
-    menu_go("lang", "Português" if ch_view == STR["menu_to_pt"] else "English")
-elif ch_view in (STR["menu_to_teacher"], STR["menu_to_student"]):
-    menu_go("papel", "teacher" if ch_view == STR["menu_to_teacher"] else "student")
-elif ch_view in (STR["menu_to_online"], STR["menu_to_offline"]):
-    menu_go("modo", "online" if ch_view == STR["menu_to_online"] else "offline")
-elif ch_special == STR["menu_restart"]:
-    for k in list(st.session_state.keys()):
-        del st.session_state[k]
-    st.rerun()
-
-
-st.markdown(
-    f"""<div class="mac-window">
-    <div class="mac-titlebar"><div class="mac-title">EduGen</div></div>
-    <div class="mac-body">
-        <div class="main-header">{STR["main_title"]}</div>
-        <div class="sub-header">{STR["sub_header"]}</div>
-    </div>
-</div>""",
-    unsafe_allow_html=True,
-)
+st.title(STR["main_title"])
+st.caption(STR["sub_header"])
 
 if offline:
     st.warning(STR["offline_banner"])
@@ -1119,14 +889,13 @@ else:
 
 
 def gerar_com_gemini(prompt, usar_json: bool = False):
-    """Wrapper com tratamento de erros e parse JSON seguro."""
+    """Wrapper com tratamento de erros, fallback automático de quota e parse JSON seguro."""
     try:
         cfg = types.GenerateContentConfig(response_mime_type="application/json") if usar_json else None
-        res = client.models.generate_content(model=model_name, contents=prompt, config=cfg)
+        res = chamar_gemini(prompt, config=cfg)
         return res.text
     except Exception as e:
-        dica = f" {STR['model_404_hint']}" if modelo_indisponivel(e) else ""
-        raise RuntimeError(f"{STR['gemini_call_err']} ({model_name}): {e}{dica}") from e
+        raise RuntimeError(f"{STR['gemini_call_err']} ({model_name}): {e}{dica_modelo(e)}") from e
 
 
 def avaliar_resposta_aberta(img_bytes: bytes, pergunta: str, resposta: str):
@@ -1156,9 +925,8 @@ def avaliar_resposta_aberta(img_bytes: bytes, pergunta: str, resposta: str):
     }}
     """
     try:
-        res_corr = client.models.generate_content(
-            model=model_name,
-            contents=[
+        res_corr = chamar_gemini(
+            [
                 prompt_correcao,
                 types.Part.from_bytes(data=img_bytes, mime_type="image/png"),
             ],
@@ -1175,15 +943,15 @@ def avaliar_resposta_aberta(img_bytes: bytes, pergunta: str, resposta: str):
         col_r1, col_r2 = st.columns(2)
         with col_r1:
             if resultado == "CERTO":
-                st.markdown(f"<div class='correct-badge'>{STR['state_good']}</div>", unsafe_allow_html=True)
+                st.success(STR["state_good"])
             else:
-                st.markdown(f"<div class='incorrect-badge'>{STR['state_bad']}</div>", unsafe_allow_html=True)
+                st.error(STR["state_bad"])
         with col_r2:
             st.metric(STR["score"], f"{nota}%")
         st.markdown(f"**{STR['feedback_ia']}** {dados_corr.get('feedback_pedagogico', '')}")
     except Exception as e:
-        dica = f" {STR['model_404_hint']}" if modelo_indisponivel(e) else ""
-        st.error(f"{STR['eval_err']}{e}{dica}")
+        st.error(f"{STR['eval_err']}{e}{dica_modelo(e)}")
+    mostrar_aviso_modelo()
 
 
 # ==========================================================
@@ -1252,6 +1020,7 @@ with tab1:
                     st.success(STR["gen_ok"])
                 except Exception as e:
                     st.error(f"{STR['gen_err']}{e}")
+                mostrar_aviso_modelo()
 
     # ---- Editor offline (só Professor, só Offline) ----
     if offline and not is_student:
@@ -1384,20 +1153,13 @@ with tab1:
                 resp_correta_texto = q["opcoes"][q["resposta_correta"]]
                 escolha = respostas_aluno_m1.get(idx)
                 if escolha is None:
-                    st.markdown(
-                        f"<div class='incorrect-badge'>P{idx + 1}: {STR['no_answer']}'{resp_correta_texto}'.</div>",
-                        unsafe_allow_html=True,
-                    )
+                    st.error(f"P{idx + 1}: {STR['no_answer']}'{resp_correta_texto}'.")
                 elif escolha == resp_correta_texto:
                     acertos_quiz += 1
-                    st.markdown(
-                        f"<div class='correct-badge'>P{idx + 1}: {STR['correct']}{q.get('explicacao', '')}</div>",
-                        unsafe_allow_html=True,
-                    )
+                    st.success(f"P{idx + 1}: {STR['correct']}{q.get('explicacao', '')}")
                 else:
-                    st.markdown(
-                        f"<div class='incorrect-badge'>P{idx + 1}: {STR['incorrect']}'{resp_correta_texto}'{STR['explic_label']}{q.get('explicacao', '')}</div>",
-                        unsafe_allow_html=True,
+                    st.error(
+                        f"P{idx + 1}: {STR['incorrect']}'{resp_correta_texto}'{STR['explic_label']}{q.get('explicacao', '')}"
                     )
 
             acertos_lacunas = 0
@@ -1461,6 +1223,7 @@ with tab2:
                     st.success(STR["jogo_ok"])
                 except Exception as e:
                     st.error(f"{STR['jogo_err']}{e}")
+                mostrar_aviso_modelo()
 
     if "dados_m2" not in st.session_state:
         if is_student:
@@ -1545,9 +1308,9 @@ with tab3:
                 c1, c2 = st.columns(2)
                 with c1:
                     if r["resultado"] == "CERTO":
-                        st.markdown(f"<div class='correct-badge'>{STR['state_good']}</div>", unsafe_allow_html=True)
+                        st.success(STR["state_good"])
                     else:
-                        st.markdown(f"<div class='incorrect-badge'>{STR['state_bad']}</div>", unsafe_allow_html=True)
+                        st.error(STR["state_bad"])
                 with c2:
                     st.metric(STR["score"], f"{r['nota_percentual']}%")
                 st.markdown(f"**{STR['feedback_label']}** {r['feedback']}")
@@ -1599,9 +1362,8 @@ with tab3:
                 if st.button(STR["btn_gen_q"], icon=":material/auto_awesome:", key="btn_pergunta_img"):
                     with st.spinner(STR["spin_img"]):
                         try:
-                            resposta_questao = client.models.generate_content(
-                                model=model_name,
-                                contents=[
+                            resposta_questao = chamar_gemini(
+                                [
                                     f"{INSTR} Analisa detalhadamente este suporte visual educativo e formula UMA pergunta analítica curta, direta e pedagógica que exija do aluno uma resposta aberta sucinta. / Analyse this educational visual and formulate ONE short analytical question requiring a brief open answer.",
                                     types.Part.from_bytes(
                                         data=st.session_state["img_bytes"], mime_type="image/png"
@@ -1614,8 +1376,8 @@ with tab3:
                             else:
                                 st.session_state["pergunta_multimodal"] = pergunta_gerada
                         except Exception as e:
-                            dica = f" {STR['model_404_hint']}" if modelo_indisponivel(e) else ""
-                            st.error(f"{STR['gen_q_err']}{e}{dica}")
+                            st.error(f"{STR['gen_q_err']}{e}{dica_modelo(e)}")
+                        mostrar_aviso_modelo()
 
                 if "pergunta_multimodal" in st.session_state:
                     st.warning(f"**{STR['generated_q']}** {st.session_state['pergunta_multimodal']}")
@@ -1633,10 +1395,4 @@ with tab3:
                             st.warning(STR["need_answer"])
 
 
-# ----------------------------------------------------------
-# STATUS BAR (decorative retro chrome)
-# ----------------------------------------------------------
-st.markdown(
-    '<div class="mac-statusbar"><div>Ready <span class="cursor"></span></div><div>EduGen OS · Mem 640K</div></div>',
-    unsafe_allow_html=True,
-)
+

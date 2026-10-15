@@ -1,36 +1,29 @@
-# EduGen OS — locked retro (Mac System 6) look.
-# Single appearance: no light/dark toggle. Pixel type via VT323.
+# EduGen — aparência única e limpa (sem toggle claro/escuro).
 
 [theme]
 base = "light"
-primaryColor = "#000000"
-backgroundColor = "#D7D7D7"
-secondaryBackgroundColor = "#FFFFFF"
-textColor = "#111111"
-borderColor = "#111111"
-linkColor = "#111111"
-codeBackgroundColor = "#FFFFFF"
-codeTextColor = "#111111"
-font = "'VT323':https://fonts.googleapis.com/css2?family=VT323&display=swap"
-headingFont = "'VT323':https://fonts.googleapis.com/css2?family=VT323&display=swap"
-baseFontSize = 18
-metricValueFontSize = "2.5rem"
-baseRadius = "0px"
-buttonRadius = "0px"
-showWidgetBorder = true
-showSidebarBorder = true
-linkUnderline = true
-paddingTop = "0.5rem"
-paddingBottom = "2rem"
+primaryColor = "#2563EB"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F6F7F9"
+textColor = "#1F2937"
+borderColor = "#E5E7EB"
+linkColor = "#2563EB"
+codeBackgroundColor = "#F6F7F9"
+codeTextColor = "#1F2937"
+font = "sans-serif"
+baseRadius = "10px"
+buttonRadius = "10px"
+showWidgetBorder = false
+showSidebarBorder = false
+paddingTop = "1.5rem"
+paddingBottom = "1.5rem"
 
 [theme.sidebar]
-backgroundColor = "#C9C9C9"
-secondaryBackgroundColor = "#FFFFFF"
-textColor = "#111111"
-borderColor = "#111111"
-primaryColor = "#000000"
-linkColor = "#111111"
-showWidgetBorder = true
+backgroundColor = "#F6F7F9"
+borderColor = "#E5E7EB"
+primaryColor = "#2563EB"
+linkColor = "#2563EB"
+showWidgetBorder = false
 
 [client]
 toolbarMode = "minimal"

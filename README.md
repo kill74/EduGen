@@ -17,6 +17,7 @@ Trabalho académico — DSI (Design de Sistemas Interativos).
 - 👩‍🏫/🧑‍🎓 Papéis **Professor** (gera, edita) e **Aluno** (responde sem ver respostas antes de submeter).
 - 🌍 Interface em **Português / English** (seletor na barra lateral).
 - ✏️ **Editor offline** (Professor): editar texto, adicionar perguntas e lacunas, repor demo.
+- ✨ Interface **clean e minimal**: só componentes nativos do Streamlit, sem CSS custom.
 
 ## 🚀 Como correr
 
@@ -33,13 +34,13 @@ Abre `http://localhost:8501`. Na barra lateral escolhe:
 ## ✅ Testes
 
 ```bash
-python -m unittest test_edugen -v   # 63 testes (lógica + estáticos)
+python -m unittest test_edugen -v   # 108 testes (lógica + estáticos + UI + quota)
 ```
 
 Smoke test end-to-end da app real (requer dependências instaladas):
 
 ```bash
-python /tmp/opencode/apptest_edugen.py   # 10 fluxos: papéis × idiomas × modos
+python /tmp/opencode/apptest_edugen.py   # 13 fluxos: papéis × idiomas × modos + UI clean
 ```
 
 ## 🗂️ Estrutura
@@ -53,6 +54,12 @@ requirements.txt    # dependências
 ## ⚙️ Modelos
 
 A lista de modelos é obtida automaticamente da tua chave API (nunca fica desatualizada).
-Recomendados: `gemini-3.8-flash` (mais recente) · `gemini-3.5-flash-lite` (muito económico) ·
-`gemini-3.1-flash-lite` · `gemini-2.5-flash` (chaves antigas).
+Os recomendados para o tier gratuito aparecem primeiro; Pro/preview vão para o fim
+(não têm quota gratuita). Recomendados: `gemini-3.8-flash` (mais recente) ·
+`gemini-3.5-flash-lite` (muito económico) · `gemini-3.6-flash` · `gemini-3.1-flash-lite` ·
+`gemini-2.5-flash-lite` · `gemini-2.5-flash` (chaves antigas).
 Os nomes `gemini-1.5-*` e `gemini-2.0-*` foram desligados pela Google e já não existem na API.
+
+**Quota esgotada (429)?** A app reage sozinha: se o modelo escolhido esgotar a quota
+diária, tenta automaticamente até 2 alternativas Flash, avisa-te e passa a usá-las —
+sem perder a geração em curso.

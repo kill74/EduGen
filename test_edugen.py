@@ -28,6 +28,10 @@ def carregar_helpers():
 
     class StDummy:
         session_state = {}
+        warnings = []
+
+        def warning(self, *args, **kwargs):
+            StDummy.warnings.append(" ".join(str(a) for a in args))
 
     ns = {"os": os, "json": json, "io": io, "re": re, "random": random, "st": StDummy()}
     exec(bloco, ns)  # noqa: S102 - ficheiro local confiável
@@ -324,6 +328,17 @@ class TestUX(unittest.TestCase):
         self.assertEqual(set(strings["pt"].keys()), set(strings["en"].keys()))
         self.assertGreater(len(strings["pt"]), 50)
 
+    def test_nenhuma_chave_orfa(self):
+        import re as _re
+
+        src = SRC_PATH.read_text(encoding="utf-8")
+        orfas = [
+            k
+            for k in H["STRINGS"]["pt"]
+            if not _re.search(rf"STR\[['\"]({_re.escape(k)})['\"]\]", src)
+        ]
+        self.assertEqual(orfas, [], f"chaves STRINGS sem qualquer uso: {orfas}")
+
     def test_todas_as_chaves_str_existem(self):
         import re as _re
 
@@ -495,6 +510,48 @@ class TestModelosGemini(unittest.TestCase):
         self.assertTrue(m(RuntimeError("This model is no longer available")))
         self.assertFalse(m("429 RESOURCE_EXHAUSTED: quota"))
 
+    def test_ordenar_pro_e_preview_no_fim(self):
+        r = H["ordenar_modelos"](
+            ["gemini-3.1-pro-preview", "gemini-z-flash", "gemini-3.8-flash", "gemini-2.5-pro"]
+        )
+        self.assertEqual(r[0], "gemini-3.8-flash")
+        self.assertEqual(r[1], "gemini-z-flash")
+        self.assertEqual(set(r[2:]), {"gemini-2.5-pro", "gemini-3.1-pro-preview"})
+
+    def test_modelo_pro_deteta_pro_preview_experimental(self):
+        mp = H["_modelo_pro"]
+        self.assertEqual(mp("gemini-3.1-pro-preview"), 1)
+        self.assertEqual(mp("gemini-2.5-pro"), 1)
+        self.assertEqual(mp("gemini-2.0-flash-exp"), 1)
+        self.assertEqual(mp("gemini-3.8-flash"), 0)
+        self.assertEqual(mp("gemini-3.5-flash-lite"), 0)
+
+    def test_erro_quota(self):
+        eq = H["erro_quota"]
+        self.assertTrue(eq("429 RESOURCE_EXHAUSTED: You exceeded your current quota"))
+        self.assertTrue(eq(RuntimeError("Quota exceeded for metric")))
+        self.assertFalse(eq("404 NOT_FOUND: model not found"))
+
+    def test_alternativas_sem_pro_e_com_limite(self):
+        st = H["st"]
+        st.session_state.clear()
+        st.session_state["_modelos_lista"] = [
+            "gemini-3.1-pro-preview",
+            "gemini-3.8-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-2.5-pro",
+            "gemini-3.6-flash",
+        ]
+        self.assertEqual(
+            H["_alternativas_modelo"]("gemini-3.1-pro-preview", limite=2),
+            ["gemini-3.8-flash", "gemini-3.5-flash-lite"],
+        )
+        st.session_state.clear()
+        self.assertEqual(
+            H["_alternativas_modelo"]("inexistente"),
+            ["gemini-3.8-flash", "gemini-3.5-flash-lite"],
+        )
+
 
 class TestModelosEstatico(unittest.TestCase):
     def test_sem_modelos_retirados_no_fonte(self):
@@ -516,10 +573,20 @@ class TestModelosEstatico(unittest.TestCase):
         self.assertIn('key="api_key_input"', src)
         self.assertIn('key="m3_upload"', src)
 
-    def test_dica_404_nos_erros(self):
+    def test_dicas_de_erro_nos_call_sites(self):
+        # todos os erros de API mostram dica útil (quota esgotada ou modelo retirado)
         src = SRC_PATH.read_text(encoding="utf-8")
-        self.assertIn("modelo_indisponivel(e)", src)
-        self.assertGreaterEqual(src.count("modelo_indisponivel(e)"), 3)
+        self.assertIn("def dica_modelo", src)
+        self.assertIn("modelo_indisponivel(erro)", src)
+        self.assertGreaterEqual(src.count("dica_modelo(e)"), 3)
+        self.assertGreaterEqual(src.count("mostrar_aviso_modelo()"), 5)
+
+    def test_fallback_quota_ligado_em_todos_os_call_sites(self):
+        src = SRC_PATH.read_text(encoding="utf-8")
+        self.assertIn("def chamar_gemini", src)
+        self.assertEqual(src.count("chamar_gemini("), 4)  # definição + 3 call sites
+        self.assertEqual(src.count("client.models.generate_content"), 1)  # só dentro do wrapper
+        self.assertIn('"_modelo_pendente"', src)
 
 
 class TestBancosOffline(unittest.TestCase):
@@ -558,45 +625,161 @@ class TestBancosOffline(unittest.TestCase):
         self.assertNotEqual(d2["pares"][0]["conceito"], "MUTADO")
 
 
-class TestRetroTheme(unittest.TestCase):
+class TestUIClean(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.root = SRC_PATH.parent
         cls.cfg = (cls.root / ".streamlit" / "config.toml").read_text(encoding="utf-8")
         cls.src = SRC_PATH.read_text(encoding="utf-8")
 
-    def test_config_locked_single_look(self):
+    def test_config_unico_e_clean(self):
         self.assertIn('base = "light"', self.cfg)
         self.assertNotIn("[theme.dark]", self.cfg)
+        self.assertIn('font = "sans-serif"', self.cfg)
+        self.assertIn('primaryColor = "#2563EB"', self.cfg)
+        self.assertNotIn("VT323", self.cfg)
+        self.assertNotIn('baseRadius = "0px"', self.cfg)
 
-    def test_config_retro_tokens(self):
-        for token in ('baseRadius = "0px"', 'buttonRadius = "0px"', "VT323", "showWidgetBorder = true"):
-            self.assertIn(token, self.cfg)
-
-    def test_css_uses_own_classes_only(self):
-        self.assertIn("mac-window", self.src)
-        self.assertIn("mac-statusbar", self.src)
-        self.assertNotIn("emotion-cache", self.src)
-
-    def test_menu_bar_funcional(self):
-        for agulha in (
-            'key="menu_file"',
-            'key="menu_edit"',
-            'key="menu_view"',
-            'key="menu_special"',
-            'key="menu_brand"',
+    def test_sem_cromo_retro(self):
+        for morto in (
+            "mac-window",
+            "mac-titlebar",
+            "mac-statusbar",
+            "mac-panel-title",
+            "mac-menubar",
+            "menu_button",
             "@st.dialog",
             "_pending_widget",
-            "def menu_novo",
-            "def menu_go",
+            "Control Panel",
+            "System 6",
+            "correct-badge",
+            "incorrect-badge",
         ):
-            self.assertIn(agulha, self.src)
-        # sem itens decorativos: File/Edit/View/Special são widgets reais
-        self.assertNotIn("<span>File</span>", self.src)
+            self.assertNotIn(morto, self.src, f"{morto} devia ter saído na limpeza da UI")
 
-    def test_no_external_images(self):
+    def test_sem_css_custom(self):
+        self.assertNotIn("<style>", self.src)
+        self.assertNotIn("unsafe_allow_html", self.src)
+        self.assertNotIn("emotion-cache", self.src)
+
+    def test_cabecalho_nativo(self):
+        self.assertIn('st.title(STR["main_title"])', self.src)
+        self.assertIn('st.caption(STR["sub_header"])', self.src)
+
+    def test_feedback_nativo(self):
+        self.assertIn('st.success(STR["state_good"])', self.src)
+        self.assertIn('st.error(STR["state_bad"])', self.src)
+        self.assertIn('st.error(f"P{idx + 1}: ', self.src)
+
+    def test_sem_recursos_externos(self):
         self.assertNotIn("img.icons8.com", self.src)
-        self.assertNotIn("http", self.src.split("<style>")[1].split("</style>")[0])
+        self.assertNotIn("http://", self.src)
+        self.assertNotIn("https://", self.src)
+
+
+class TestFallbackQuota(unittest.TestCase):
+    """chamar_gemini: troca automática de modelo quando a quota esgota (429)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.st = H["st"]
+
+    def setUp(self):
+        self.st.session_state.clear()
+        self.st.warnings.clear()
+        H["STR"] = {
+            "model_quota_hint": "quota esgotada — escolhe um Flash",
+            "model_404_hint": "modelo retirado",
+            "model_switch": "troca {antigo}->{novo}",
+        }
+
+    def tearDown(self):
+        self.st.session_state.clear()
+        self.st.warnings.clear()
+
+    @staticmethod
+    def _cliente(comportamento):
+        class FakeModels:
+            chamadas = []
+
+            def generate_content(self, model=None, contents=None, config=None):
+                FakeModels.chamadas.append(model)
+                r = comportamento.get(model, "ok")
+                if r == "quota":
+                    raise RuntimeError(f"429 RESOURCE_EXHAUSTED quota: {model}")
+                if r == "erro":
+                    raise RuntimeError(f"400 INVALID_ARGUMENT: {model}")
+
+                class FakeRes:
+                    text = "resposta ok"
+
+                return FakeRes()
+
+        class FakeClient:
+            models = FakeModels()
+
+        return FakeClient(), FakeModels
+
+    def test_quota_troca_automaticamente_e_memoriza(self):
+        self.st.session_state["_modelos_lista"] = [
+            "gemini-3.1-pro-preview",
+            "gemini-3.8-flash",
+            "gemini-3.5-flash-lite",
+        ]
+        cliente, modelos = self._cliente({"gemini-3.1-pro-preview": "quota"})
+        H["client"] = cliente
+        H["model_name"] = "gemini-3.1-pro-preview"
+        res = H["chamar_gemini"]("prompt")
+        self.assertEqual(res.text, "resposta ok")
+        self.assertEqual(modelos.chamadas, ["gemini-3.1-pro-preview", "gemini-3.8-flash"])
+        self.assertEqual(H["model_name"], "gemini-3.8-flash")
+        self.assertEqual(self.st.session_state["_modelo_pendente"], "gemini-3.8-flash")
+        self.assertEqual(
+            self.st.session_state["_modelo_trocado"],
+            ("gemini-3.1-pro-preview", "gemini-3.8-flash"),
+        )
+
+    def test_quota_total_levanta_o_primeiro_erro(self):
+        self.st.session_state["_modelos_lista"] = [
+            "gemini-3.8-flash",
+            "gemini-3.6-flash",
+            "gemini-3.5-flash-lite",
+        ]
+        cliente, modelos = self._cliente(
+            {
+                "gemini-3.8-flash": "quota",
+                "gemini-3.6-flash": "quota",
+                "gemini-3.5-flash-lite": "quota",
+            }
+        )
+        H["client"] = cliente
+        H["model_name"] = "gemini-3.8-flash"
+        with self.assertRaises(RuntimeError) as ctx:
+            H["chamar_gemini"]("prompt")
+        self.assertIn("gemini-3.8-flash", str(ctx.exception))
+        self.assertEqual(len(modelos.chamadas), 3)
+
+    def test_erro_nao_quota_falha_de_imediato(self):
+        self.st.session_state["_modelos_lista"] = ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
+        cliente, modelos = self._cliente({"gemini-3.8-flash": "erro"})
+        H["client"] = cliente
+        H["model_name"] = "gemini-3.8-flash"
+        with self.assertRaises(RuntimeError):
+            H["chamar_gemini"]("prompt")
+        self.assertEqual(modelos.chamadas, ["gemini-3.8-flash"])
+
+    def test_dica_modelo(self):
+        dm = H["dica_modelo"]
+        self.assertIn("quota", dm(RuntimeError("429 RESOURCE_EXHAUSTED")))
+        self.assertIn("retirado", dm(RuntimeError("404 NOT_FOUND: models/x")))
+        self.assertEqual(dm(RuntimeError("erro simples")), "")
+
+    def test_mostrar_aviso_uma_so_vez(self):
+        self.st.session_state["_modelo_trocado"] = ("a", "b")
+        H["mostrar_aviso_modelo"]()
+        H["mostrar_aviso_modelo"]()
+        self.assertEqual(len(self.st.warnings), 1)
+        self.assertIn("troca a->b", self.st.warnings[0])
 
 
 if __name__ == "__main__":
