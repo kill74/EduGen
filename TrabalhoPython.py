@@ -22,12 +22,141 @@ except ImportError:
 # ==========================================================
 # CONFIGURAÇÃO DA PÁGINA E ESTILIZAÇÃO DSI (UX/UI)
 # ==========================================================
+# Marca da app (ícone da aba + logótipo na sidebar), resolvida a partir do ficheiro
+ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+MARCA_APP = os.path.join(ASSETS_DIR, "edugen_mark.png")
+
+CSS_UI = """
+<style>
+/* ============================================================
+   EduGen — identidade visual com animacoes e micro-interacoes
+   (tema base no config.toml; aqui so o que o tema nao expressa)
+   ============================================================ */
+
+/* Hero com gradiente animado */
+.edugen-hero { position: relative; overflow: hidden; border-radius: 22px; padding: 2rem 2.2rem 2.1rem; color: #fff;
+    background: linear-gradient(115deg, #6D28D9 0%, #7C3AED 28%, #4F46E5 62%, #6D28D9 100%);
+    background-size: 260% 260%; animation: ed-gradient 16s ease infinite;
+    box-shadow: 0 26px 70px -34px rgba(76, 29, 149, 0.65); }
+.edugen-hero::before, .edugen-hero::after { content: ""; position: absolute; border-radius: 50%; filter: blur(46px); opacity: 0.55; pointer-events: none; }
+.edugen-hero::before { width: 320px; height: 320px; top: -140px; right: -70px; background: #A78BFA; animation: ed-float 9s ease-in-out infinite; }
+.edugen-hero::after { width: 260px; height: 260px; bottom: -150px; left: 32%; background: #818CF8; animation: ed-float 12s ease-in-out infinite reverse; }
+.edugen-hero > * { position: relative; z-index: 1; }
+.edugen-hero-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.32rem 0.8rem; border-radius: 999px;
+    font-size: 0.78rem; font-weight: 600; letter-spacing: 0.02em; color: #fff;
+    background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(6px); animation: ed-fade-up 0.6s ease-out both; }
+.edugen-hero-badge::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 999px;
+    background: var(--ed-dot, #34D399); animation: ed-pulse 2.6s ease-in-out infinite; }
+.edugen-hero-badge--off { --ed-dot: #FBBF24; }
+.edugen-hero-badge .edugen-ico { font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal;
+    font-size: 1rem; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap;
+    direction: ltr; font-feature-settings: "liga"; -webkit-font-feature-settings: "liga"; -webkit-font-smoothing: antialiased; }
+.edugen-hero h1.edugen-hero-title { margin: 0.95rem 0 0.4rem; font-size: 2.5rem; line-height: 1.14; font-weight: 800;
+    letter-spacing: -0.02em; color: #fff; text-shadow: 0 2px 26px rgba(30, 27, 75, 0.3); animation: ed-fade-up 0.7s 0.06s ease-out both; }
+.edugen-hero-sub { margin: 0; max-width: 62ch; font-size: 1.02rem; line-height: 1.55; color: rgba(255, 255, 255, 0.9);
+    animation: ed-fade-up 0.7s 0.14s ease-out both; }
+
+@keyframes ed-gradient { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes ed-float { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -16px, 0); } }
+@keyframes ed-fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes ed-pulse { 0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ed-dot, #34D399) 30%, transparent); }
+    50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--ed-dot, #34D399) 12%, transparent); } }
+
+/* Abas em pilula com transicao */
+[data-testid="stTabs"] [role="tablist"] { gap: 0.4rem !important; background: #F5F3FF !important; padding: 0.4rem !important;
+    border-radius: 16px !important; border: 1px solid #EDE9FE !important; flex-wrap: wrap; }
+[data-testid="stTab"] { border-radius: 12px !important; padding: 0.45rem 1rem !important; border: none !important;
+    transition: background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease; }
+[data-testid="stTab"]:hover { background: rgba(124, 58, 237, 0.08) !important; transform: translateY(-1px); }
+[data-testid="stTab"][data-selected="true"] { background: linear-gradient(135deg, #7C3AED, #4F46E5) !important;
+    box-shadow: 0 12px 24px -12px rgba(109, 40, 217, 0.6); }
+[data-testid="stTab"][data-selected="true"], [data-testid="stTab"][data-selected="true"] * { color: #fff !important; }
+/* A pilula gradiente ja marca a selecao: escondemos a barra sublinhada nativa. */
+[data-testid="stTabs"] .react-aria-SelectionIndicator { display: none !important; }
+
+/* Botoes com gradiente e hover */
+[data-testid="stBaseButton-secondary"] { border: 1px solid #E4E1F7 !important; border-radius: 12px !important; background: #fff !important;
+    transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease, background 0.2s ease; }
+[data-testid="stBaseButton-secondary"]:hover { border-color: #C4B5FD !important; background: #FAF8FF !important;
+    transform: translateY(-1px); box-shadow: 0 12px 26px -18px rgba(109, 40, 217, 0.55); }
+[data-testid="stBaseButton-secondary"]:active { transform: scale(0.99); }
+[data-testid="stBaseButton-primary"] { border: none !important; border-radius: 12px !important; font-weight: 600;
+    background: linear-gradient(135deg, #7C3AED, #4F46E5) !important; color: #fff !important;
+    box-shadow: 0 14px 30px -16px rgba(109, 40, 217, 0.7); transition: transform 0.2s ease, box-shadow 0.25s ease, filter 0.2s ease; }
+[data-testid="stBaseButton-primary"]:hover { transform: translateY(-2px); filter: brightness(1.06);
+    box-shadow: 0 20px 38px -16px rgba(109, 40, 217, 0.8); }
+[data-testid="stBaseButton-primary"]:active { transform: scale(0.98); }
+[data-testid="stBaseButton-primary"] * { color: #fff !important; }
+
+/* Cartoes de metrica com valor em gradiente */
+[data-testid="stMetric"] { background: linear-gradient(160deg, #FFFFFF 42%, #F5F3FF) !important; border: 1px solid #EDE9FE;
+    border-radius: 18px !important; padding: 1rem 1.2rem !important;
+    box-shadow: 0 20px 46px -32px rgba(76, 29, 149, 0.55); transition: transform 0.25s ease, box-shadow 0.25s ease;
+    animation: ed-fade-up 0.4s ease-out both; }
+[data-testid="stMetric"]:hover { transform: translateY(-3px); box-shadow: 0 28px 58px -32px rgba(76, 29, 149, 0.7); }
+[data-testid="stMetricValue"] { background: linear-gradient(135deg, #6D28D9, #4F46E5); -webkit-background-clip: text;
+    background-clip: text; -webkit-text-fill-color: transparent; color: #6D28D9; }
+
+/* Alertas suaves */
+[data-testid="stAlert"] { border-radius: 16px !important; border: 1px solid rgba(109, 40, 217, 0.12) !important;
+    box-shadow: 0 16px 40px -32px rgba(30, 27, 75, 0.5); animation: ed-fade-up 0.3s ease-out both; }
+[data-testid="stSidebar"] [data-testid="stAlert"] { background: rgba(255, 255, 255, 0.07) !important;
+    border: 1px solid rgba(196, 181, 253, 0.32) !important; animation: none; }
+[data-testid="stSidebar"] [data-testid="stAlertContainer"] { background: transparent !important; border-radius: 16px !important; }
+[data-testid="stSidebar"] [data-testid="stAlert"] * { color: #EDE9FE !important; }
+
+/* Expander com hover */
+[data-testid="stExpander"] { border: 1px solid #EDE9FE !important; border-radius: 16px !important;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+[data-testid="stExpander"]:hover { border-color: #DDD6FE !important; box-shadow: 0 18px 40px -30px rgba(76, 29, 149, 0.55); }
+[data-testid="stExpander"] summary { transition: background 0.2s ease; }
+[data-testid="stExpander"] summary:hover { background: #FAF8FF !important; }
+[data-testid="stExpander"] summary [data-testid="stIconMaterial"] { transition: transform 0.25s ease; }
+
+/* Campos com foco suave */
+[data-testid="stTextInputRootElement"], [data-testid="stTextAreaRootElement"], [data-testid="stNumberInputContainer"] {
+    border-radius: 12px !important; border: 1px solid transparent !important;
+    transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease; }
+[data-testid="stTextInputRootElement"]:hover, [data-testid="stTextAreaRootElement"]:hover, [data-testid="stNumberInputContainer"]:hover { border-color: #DDD6FE !important; }
+[data-testid="stTextInputRootElement"]:focus-within, [data-testid="stTextAreaRootElement"]:focus-within, [data-testid="stNumberInputContainer"]:focus-within {
+    border-color: #A78BFA !important; box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.14) !important; }
+
+/* Opcoes de radio com hover */
+[data-testid="stRadioOption"] { border-radius: 10px; padding: 0.3rem 0.55rem; transition: background 0.2s ease; }
+[data-testid="stRadioOption"]:hover { background: rgba(124, 58, 237, 0.08); }
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:hover { background: rgba(255, 255, 255, 0.08); }
+
+/* Cabecalhos da area principal com barra de acento */
+[data-testid="stMain"] h2::after { content: ""; display: block; width: 64px; height: 4px; border-radius: 99px; margin-top: 0.5rem;
+    background: linear-gradient(90deg, #7C3AED, #4F46E5); }
+
+/* Logotipo da sidebar */
+[data-testid="stSidebarLogo"] { filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.4)); transition: transform 0.3s ease; }
+[data-testid="stSidebarLogo"]:hover { transform: scale(1.06) rotate(-2deg); }
+
+/* Detalhes finais */
+::selection { background: rgba(124, 58, 237, 0.25); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #A78BFA, #7C3AED); border-radius: 99px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Acessibilidade: respeitar quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce) {
+    .edugen-hero, .edugen-hero::before, .edugen-hero::after, .edugen-hero-badge, .edugen-hero h1.edugen-hero-title,
+    .edugen-hero-sub, [data-testid="stAlert"], [data-testid="stMetric"] { animation: none !important; }
+}
+</style>
+"""
+
 st.set_page_config(
     page_title="EduGen - Sistema Interativo de IA Generativa",
-    page_icon=":material/school:",
+    page_icon=MARCA_APP,
     layout="wide",
     initial_sidebar_state="expanded",
 )
+st.logo(MARCA_APP, size="medium")
+st.html(CSS_UI)
 
 
 # ==========================================================
@@ -413,6 +542,37 @@ def construir_resumo_estudo(erros, total: int, onde: str) -> str:
     return "\n".join(linhas)
 
 
+def construir_hero(titulo: str, subtitulo: str, chip: str, estado: str = "on") -> str:
+    """HTML do cabeçalho hero com gradiente animado. 'estado' = 'on' | 'off' (cor do ponto)."""
+
+    def _esc(texto):
+        return (texto or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    # Em HTML bruto o Streamlit não processa ":material/exemplo:": convertemos
+    # o marcador num símbolo real da fonte Material Symbols que a app já carrega.
+    texto_chip = chip or ""
+    icone_chip = ""
+    marcador = re.match(r"\s*:material/([a-z0-9_]+):\s*", texto_chip)
+    if marcador:
+        icone_chip = f'<span class="edugen-ico" aria-hidden="true">{marcador.group(1)}</span>'
+        texto_chip = texto_chip[marcador.end():]
+
+    classe_badge = "edugen-hero-badge edugen-hero-badge--off" if estado == "off" else "edugen-hero-badge"
+    return (
+        '<div class="edugen-hero">'
+        f'<span class="{classe_badge}">{icone_chip}{_esc(texto_chip)}</span>'
+        f'<h1 class="edugen-hero-title">{_esc(titulo)}</h1>'
+        f'<p class="edugen-hero-sub">{_esc(subtitulo)}</p>'
+        "</div>"
+    )
+
+
+def celebrar():
+    """Celebração (balões + aviso) quando a pontuação é perfeita."""
+    st.balloons()
+    st.toast(STR["perfect_score"], icon=":material/emoji_events:")
+
+
 # ==========================================================
 # TEXTOS DA INTERFACE (PT / EN) — chaves idênticas nos 2 idiomas
 # ==========================================================
@@ -443,9 +603,9 @@ STRINGS = {
         "offline_banner": ":material/cloud_off: Está no **modo Offline/Demo**: funciona **sem chave Gemini**, com exemplos locais e correção automática simples (sem IA).",
         "main_title": "EduGen: Gerador e Avaliador Educativo Inteligente",
         "sub_header": "Plataforma interativa para criação automática de recursos didáticos e avaliação assistida por IA — com modo Offline/Demo sem chave.",
-        "tab1": ":material/menu_book: Módulo 1: Conteúdo Explicativo, Quiz & Lacunas",
-        "tab2": ":material/extension: Módulo 2: Jogo de Associação de Conceitos",
-        "tab3": ":material/image: Módulo 3: Avaliação Multimodal & Resposta Aberta",
+        "tab1": ":material/menu_book: Módulo 1 · Conteúdo e Quiz",
+        "tab2": ":material/extension: Módulo 2 · Jogo de Associação",
+        "tab3": ":material/image: Módulo 3 · Avaliação Multimodal",
         "instr": "Responde sempre em português europeu (pt-PT). Mantém exatamente as chaves do JSON pedido.",
         "m1_header": "1. Geração de Conteúdo Didático e Questionário Adaptável",
         "tema_label": "Tema ou Tópico da Aula:",
@@ -570,6 +730,7 @@ STRINGS = {
         "study_q": "Pergunta {n}",
         "study_lac": "Lacuna {n}",
         "study_par": "Par {n}",
+        "perfect_score": "Pontuação perfeita! Continua assim.",
     },
     "en": {
         "role_label": "Role:",
@@ -597,9 +758,9 @@ STRINGS = {
         "offline_banner": ":material/cloud_off: You are in **Offline/Demo mode**: works **without a Gemini key**, with local examples and simple automatic correction (no AI).",
         "main_title": "EduGen: Intelligent Educational Generator & Evaluator",
         "sub_header": "Interactive platform for automatic teaching-resource creation and AI-assisted assessment — with keyless Offline/Demo mode.",
-        "tab1": ":material/menu_book: Module 1: Explanatory Content, Quiz & Gaps",
-        "tab2": ":material/extension: Module 2: Concept-Matching Game",
-        "tab3": ":material/image: Module 3: Multimodal Assessment & Open Answer",
+        "tab1": ":material/menu_book: Module 1 · Content & Quiz",
+        "tab2": ":material/extension: Module 2 · Matching Game",
+        "tab3": ":material/image: Module 3 · Multimodal Assessment",
         "instr": "Always answer in English. Keep exactly the requested JSON keys.",
         "m1_header": "1. Teaching Content Generation and Adaptive Quiz",
         "tema_label": "Lesson Theme or Topic:",
@@ -724,6 +885,7 @@ STRINGS = {
         "study_q": "Question {n}",
         "study_lac": "Gap {n}",
         "study_par": "Pair {n}",
+        "perfect_score": "Perfect score! Keep it up.",
     },
 }
 
@@ -967,10 +1129,16 @@ with st.sidebar:
             st.warning(STR["waiting_key"])
 
 # ==========================================================
-# CABEÇALHO
+# CABEÇALHO (HERO ANIMADO)
 # ==========================================================
-st.title(STR["main_title"])
-st.caption(STR["sub_header"])
+st.html(
+    construir_hero(
+        STR["main_title"],
+        STR["sub_header"],
+        STR["mode_offline"] if offline else STR["mode_online"],
+        "off" if offline else "on",
+    )
+)
 
 if offline:
     st.warning(STR["offline_banner"])
@@ -1044,6 +1212,8 @@ def avaliar_resposta_aberta(img_bytes: bytes, pergunta: str, resposta: str):
         with col_r2:
             st.metric(STR["score"], f"{nota}%")
         st.markdown(f"**{STR['feedback_ia']}** {dados_corr.get('feedback_pedagogico', '')}")
+        if nota == 100:
+            celebrar()
     except Exception as e:
         st.error(f"{STR['eval_err']}{e}{dica_modelo(e)}")
     mostrar_aviso_modelo()
@@ -1058,7 +1228,7 @@ tab1, tab2, tab3 = st.tabs([STR["tab1"], STR["tab2"], STR["tab3"]])
 # MÓDULO 1
 # ----------------------------------------------------------
 with tab1:
-    st.header(STR["m1_header"])
+    st.header(STR["m1_header"], icon=":material/menu_book:")
 
     col_input1, col_input2 = st.columns([2, 1])
     with col_input1:
@@ -1066,7 +1236,7 @@ with tab1:
     with col_input2:
         num_opcoes = st.slider(STR["num_opc_label"], min_value=2, max_value=6, value=4, key="num_opc")
 
-    if not is_student and st.button(STR["btn_gen_m1"], icon=":material/auto_awesome:", key="btn_m1"):
+    if not is_student and st.button(STR["btn_gen_m1"], icon=":material/auto_awesome:", key="btn_m1", type="primary"):
         with st.spinner(STR["spin_m1"]):
             limpar_respostas_antigas(prefixos=("q_", "lac_"))
             if offline:
@@ -1239,7 +1409,7 @@ with tab1:
             st.write(f"**{STR['exercicio']}{idx_l + 1}:** {frase}")
             respostas_lacunas[idx_l] = st.text_input(f"{STR['lacuna_label']}{idx_l + 1}:", key=f"lac_{idx_l}")
 
-        if st.button(STR["btn_submit_m1"], icon=":material/check_circle:", key="btn_validar_m1"):
+        if st.button(STR["btn_submit_m1"], icon=":material/check_circle:", key="btn_validar_m1", type="primary"):
             st.divider()
             st.subheader(STR["result_sub"])
 
@@ -1304,17 +1474,19 @@ with tab1:
                 if resumo:
                     with st.expander(STR["study_title"], expanded=True, icon=":material/school:"):
                         st.markdown(resumo)
+                if (acertos_quiz + acertos_lacunas) == total:
+                    celebrar()
 
 # ----------------------------------------------------------
 # MÓDULO 2
 # ----------------------------------------------------------
 with tab2:
-    st.header(STR["m2_header"])
+    st.header(STR["m2_header"], icon=":material/extension:")
     st.markdown(STR["m2_desc"])
 
     tema_m2 = st.text_input(STR["tema_m2_label"], value="Sistemas Operativos e Gestão de Memória", key="tema_m2")
 
-    if not is_student and st.button(STR["btn_create_m2"], icon=":material/auto_awesome:", key="btn_m2"):
+    if not is_student and st.button(STR["btn_create_m2"], icon=":material/auto_awesome:", key="btn_m2", type="primary"):
         with st.spinner(STR["spin_m2"]):
             limpar_respostas_antigas(prefixos=("assoc_",), extras=("def_baralhadas",))
             if offline:
@@ -1387,7 +1559,7 @@ with tab2:
                         key=f"assoc_{idx}",
                     )
 
-            if st.button(STR["btn_check_m2"], icon=":material/check_circle:", key="btn_valida_m2"):
+            if st.button(STR["btn_check_m2"], icon=":material/check_circle:", key="btn_valida_m2", type="primary"):
                 acertos = 0
                 erros_estudo = []
                 for idx, p in enumerate(pares):
@@ -1418,12 +1590,14 @@ with tab2:
                 if resumo:
                     with st.expander(STR["study_title"], expanded=True, icon=":material/school:"):
                         st.markdown(resumo)
+                if acertos == len(pares):
+                    celebrar()
 
 # ----------------------------------------------------------
 # MÓDULO 3
 # ----------------------------------------------------------
 with tab3:
-    st.header(STR["m3_header"])
+    st.header(STR["m3_header"], icon=":material/image:")
     if offline:
         st.info(STR["m3_off_info"])
     else:
@@ -1434,7 +1608,7 @@ with tab3:
         pergunta_manual = st.text_input(STR["q_teacher_label"], key="m3_pergunta_manual")
         keywords = st.text_input(STR["kw_label"], placeholder=STR["kw_ph"], key="m3_kw")
         resposta_off = st.text_area(STR["answer_label"], height=100, key="m3_resp_off")
-        if st.button(STR["btn_correct_off"], icon=":material/check_circle:", key="btn_m3_off"):
+        if st.button(STR["btn_correct_off"], icon=":material/check_circle:", key="btn_m3_off", type="primary"):
             if not pergunta_manual.strip():
                 st.warning(STR["ask_question_first"])
             elif not keywords.strip():
@@ -1457,6 +1631,8 @@ with tab3:
                 if r["resultado"] != "CERTO" and r.get("em_falta"):
                     with st.expander(STR["study_title"], expanded=True, icon=":material/school:"):
                         st.markdown(STR["study_missed"].format(chaves=", ".join(r["em_falta"])))
+                if r["resultado"] == "CERTO" and r["nota_percentual"] == 100:
+                    celebrar()
     elif is_student:
         # ---- Aluno: responde à pergunta e imagem já preparadas pelo professor ----
         if "pergunta_multimodal" in st.session_state and "img_bytes" in st.session_state:
@@ -1470,7 +1646,7 @@ with tab3:
                 pass
             st.warning(f"**{STR['generated_q']}** {st.session_state['pergunta_multimodal']}")
             resposta_aluno = st.text_area(STR["answer_label"], height=100, key="m3_resp_student")
-            if st.button(STR["btn_eval"], icon=":material/smart_toy:", key="btn_corrigir_student"):
+            if st.button(STR["btn_eval"], icon=":material/smart_toy:", key="btn_corrigir_student", type="primary"):
                 if resposta_aluno.strip():
                     with st.spinner(STR["spin_eval"]):
                         avaliar_resposta_aberta(
@@ -1502,7 +1678,7 @@ with tab3:
                     st.session_state["_img_id"] = img_id
                 st.image(image, caption=STR["img_caption"], width=450)
 
-                if st.button(STR["btn_gen_q"], icon=":material/auto_awesome:", key="btn_pergunta_img"):
+                if st.button(STR["btn_gen_q"], icon=":material/auto_awesome:", key="btn_pergunta_img", type="primary"):
                     with st.spinner(STR["spin_img"]):
                         try:
                             resposta_questao = chamar_gemini(
@@ -1526,7 +1702,7 @@ with tab3:
                     st.warning(f"**{STR['generated_q']}** {st.session_state['pergunta_multimodal']}")
                     resposta_aluno_aberta = st.text_area(STR["answer_label"], height=100, key="m3_resp_teacher")
 
-                    if st.button(STR["btn_eval"], icon=":material/smart_toy:", key="btn_corrigir_aberta"):
+                    if st.button(STR["btn_eval"], icon=":material/smart_toy:", key="btn_corrigir_aberta", type="primary"):
                         if resposta_aluno_aberta.strip():
                             with st.spinner(STR["spin_eval"]):
                                 avaliar_resposta_aberta(

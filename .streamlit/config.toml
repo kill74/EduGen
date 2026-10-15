@@ -1,29 +1,51 @@
-# EduGen — aparência única e limpa (sem toggle claro/escuro).
+# EduGen — identidade visual própria: indigo/violeta moderno, Plus Jakarta Sans
+# e barra lateral escura contrastante. Aparência única e travada (sem toggle).
 
 [theme]
 base = "light"
-primaryColor = "#2563EB"
+primaryColor = "#6D28D9"
 backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F6F7F9"
-textColor = "#1F2937"
-borderColor = "#E5E7EB"
-linkColor = "#2563EB"
-codeBackgroundColor = "#F6F7F9"
-codeTextColor = "#1F2937"
-font = "sans-serif"
-baseRadius = "10px"
-buttonRadius = "10px"
+secondaryBackgroundColor = "#F5F3FF"
+textColor = "#1E1B4B"
+linkColor = "#6D28D9"
+borderColor = "#E4E1F7"
+codeTextColor = "#4C1D95"
+codeBackgroundColor = "#F5F3FF"
+font = "'Plus Jakarta Sans':https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+headingFont = "'Plus Jakarta Sans':https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+headingFontSizes = ["40px", "27px", "22px", "18px", "16px", "14px"]
+headingFontWeights = [800, 700, 600, 600, 500, 500]
+metricValueFontSize = "2.5rem"
+metricValueFontWeight = 800
+linkUnderline = false
+baseRadius = "0.75rem"
+buttonRadius = "0.75rem"
 showWidgetBorder = false
 showSidebarBorder = false
-paddingTop = "1.5rem"
-paddingBottom = "1.5rem"
+paddingTop = "2rem"
+paddingBottom = "2.5rem"
+greenColor = "#059669"
+redColor = "#DC2626"
+yellowColor = "#D97706"
+orangeColor = "#EA580C"
+blueColor = "#4F46E5"
+violetColor = "#7C3AED"
+grayColor = "#6B7280"
+chartCategoricalColors = ["#6D28D9", "#4F46E5", "#0EA5E9", "#059669", "#D97706", "#DC2626", "#7C3AED"]
 
+# Barra lateral escura (indigo profundo) com texto claro — contraste premium.
 [theme.sidebar]
-backgroundColor = "#F6F7F9"
-borderColor = "#E5E7EB"
-primaryColor = "#2563EB"
-linkColor = "#2563EB"
+backgroundColor = "#1E1B4B"
+secondaryBackgroundColor = "#312E81"
+codeBackgroundColor = "#312E81"
+textColor = "#EDE9FE"
+borderColor = "#4338CA"
+primaryColor = "#A78BFA"
+linkColor = "#C4B5FD"
 showWidgetBorder = false
+paddingTop = "1.25rem"
+paddingBottom = "1.5rem"
 
 [client]
 toolbarMode = "minimal"

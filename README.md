@@ -17,7 +17,10 @@ Trabalho académico — DSI (Design de Sistemas Interativos).
 - 👩‍🏫/🧑‍🎓 Papéis **Professor** (gera, edita) e **Aluno** (responde sem ver respostas antes de submeter).
 - 🌍 Interface em **Português / English** (seletor na barra lateral).
 - ✏️ **Editor offline** (Professor): editar texto, adicionar perguntas e lacunas, repor demo.
-- ✨ Interface **clean e minimal**: só componentes nativos do Streamlit, sem CSS custom.
+- ✨ **Identidade visual própria**: hero com gradiente animado, abas em pílula, botões
+  principais com gradiente e micro-interações (hover, foco com halo, entrada suave) —
+  tema violeta/indigo com Plus Jakarta Sans em `.streamlit/config.toml`, refinado com
+  CSS próprio injetado via `st.html` (sem `unsafe_allow_html`), com celebração a 100%.
 - 🧭 **Resumo de estudo automático**: quando há erros (quiz, lacunas, jogo ou resposta aberta),
   a app mostra um pequeno resumo com a resposta certa, a explicação de cada falha e o que rever —
   funciona também offline.
@@ -37,21 +40,24 @@ Abre `http://localhost:8501`. Na barra lateral escolhe:
 ## ✅ Testes
 
 ```bash
-python -m unittest test_edugen -v   # 118 testes (lógica + estáticos + UI + quota)
+python -m unittest test_edugen -v   # 124 testes (lógica + estáticos + UI + quota)
 ```
 
 Smoke test end-to-end da app real (requer dependências instaladas):
 
 ```bash
-python /tmp/opencode/apptest_edugen.py   # 14 fluxos: papéis × idiomas × modos + resumos de estudo
+python smoke_fluxos.py   # 11 fluxos: papéis × idiomas × modos + resumos de estudo
 ```
 
 ## 🗂️ Estrutura
 
 ```
-TrabalhoPython.py   # app Streamlit (lógica + UI)
-test_edugen.py      # suite de testes (só biblioteca padrão)
-requirements.txt    # dependências
+TrabalhoPython.py        # app Streamlit (lógica + UI)
+test_edugen.py           # suite de testes (só biblioteca padrão)
+smoke_fluxos.py          # smoke test end-to-end (Streamlit AppTest)
+.streamlit/config.toml   # tema (violeta/indigo, Plus Jakarta Sans, sidebar escura)
+assets/edugen_mark.png   # marca da app (logo e ícone da página)
+requirements.txt         # dependências
 ```
 
 ## ⚙️ Modelos

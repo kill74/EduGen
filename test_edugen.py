@@ -290,6 +290,39 @@ class TestResumoEstudo(unittest.TestCase):
         self.assertIn("Estuda onde.", r)
 
 
+class TestHero(unittest.TestCase):
+    """HTML do cabeçalho hero (gradiente animado + chip de estado)."""
+
+    def test_html_completo(self):
+        h = H["construir_hero"]("EduGen X", "Sub Y", "Offline / Demo", "off")
+        self.assertIn("edugen-hero", h)
+        self.assertIn("<h1", h)
+        self.assertIn("EduGen X", h)
+        self.assertIn("Sub Y", h)
+        self.assertIn("edugen-hero-badge--off", h)
+
+    def test_online_sem_classe_off(self):
+        h = H["construir_hero"]("T", "S", "Online", "on")
+        self.assertNotIn("--off", h)
+
+    def test_icone_material_vira_simbolo(self):
+        h = H["construir_hero"]("T", "S", ":material/cloud_off: Offline / Demo", "off")
+        self.assertIn('<span class="edugen-ico"', h)
+        self.assertIn(">cloud_off</span>", h)
+        self.assertNotIn(":material/", h)
+        self.assertIn("Offline / Demo", h)
+
+    def test_sem_icone_como_simbolo(self):
+        h = H["construir_hero"]("T", "S", "Online", "on")
+        self.assertNotIn("edugen-ico", h)
+        self.assertIn("Online", h)
+
+    def test_escapa_html(self):
+        h = H["construir_hero"]("<b>x</b> & y", "s", "c")
+        self.assertNotIn("<b>", h)
+        self.assertIn("&amp;", h)
+
+
 class TestFluxoCorrecao(unittest.TestCase):
 
     def test_m1_tudo_certo_da_100(self):
@@ -385,6 +418,15 @@ class TestEstatico(unittest.TestCase):
         self.assertEqual(self.src.count('st.expander(STR["study_title"]'), 3)
         self.assertIn('STR["study_title"]', self.src)
         self.assertIn('STR["study_missed"]', self.src)
+
+    def test_identidade_animada(self):
+        self.assertIn("@keyframes ed-gradient", self.src)
+        self.assertIn("def construir_hero", self.src)
+        self.assertIn("def celebrar", self.src)
+        # def + 4 chamadas (M1, M2, M3 offline e avaliação online)
+        self.assertEqual(self.src.count("celebrar()"), 5)
+        # botões principais com o estilo primário (gradiente)
+        self.assertEqual(self.src.count('type="primary"'), 8)
 
 
 class TestUX(unittest.TestCase):
@@ -703,8 +745,9 @@ class TestUIClean(unittest.TestCase):
     def test_config_unico_e_clean(self):
         self.assertIn('base = "light"', self.cfg)
         self.assertNotIn("[theme.dark]", self.cfg)
-        self.assertIn('font = "sans-serif"', self.cfg)
-        self.assertIn('primaryColor = "#2563EB"', self.cfg)
+        self.assertIn("Plus Jakarta Sans", self.cfg)
+        self.assertIn('primaryColor = "#6D28D9"', self.cfg)
+        self.assertIn("[theme.sidebar]", self.cfg)
         self.assertNotIn("VT323", self.cfg)
         self.assertNotIn('baseRadius = "0px"', self.cfg)
 
@@ -725,14 +768,18 @@ class TestUIClean(unittest.TestCase):
         ):
             self.assertNotIn(morto, self.src, f"{morto} devia ter saído na limpeza da UI")
 
-    def test_sem_css_custom(self):
-        self.assertNotIn("<style>", self.src)
+    def test_css_tematico_injetado_uma_vez(self):
+        # identidade visual: CSS proprio injetado via st.html (sem unsafe_allow_html)
+        self.assertEqual(self.src.count("st.html(CSS_UI)"), 1)
+        self.assertIn("<style>", self.src)
         self.assertNotIn("unsafe_allow_html", self.src)
+        self.assertNotIn("<script", self.src)
         self.assertNotIn("emotion-cache", self.src)
 
-    def test_cabecalho_nativo(self):
-        self.assertIn('st.title(STR["main_title"])', self.src)
-        self.assertIn('st.caption(STR["sub_header"])', self.src)
+    def test_cabecalho_hero(self):
+        self.assertIn("construir_hero(", self.src)
+        self.assertIn('STR["main_title"]', self.src)
+        self.assertIn('STR["sub_header"]', self.src)
 
     def test_feedback_nativo(self):
         self.assertIn('st.success(STR["state_good"])', self.src)
