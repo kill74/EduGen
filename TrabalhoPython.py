@@ -368,19 +368,49 @@ def gerar_dados_m2_offline(tema: str) -> dict:
 
 def corrigir_por_keywords(resposta: str, keywords: str) -> dict:
     """Correção local (modo offline): % de palavras-chave encontradas na resposta."""
-    lista = [normalizar(k) for k in keywords.split(",") if k.strip()]
+    originais = [k.strip() for k in keywords.split(",") if k.strip()]
+    lista = [normalizar(k) for k in originais]
     if not lista:
-        return {"resultado": "ERRADO", "nota_percentual": 0, "feedback": "Defina palavras-chave para correção."}
+        return {
+            "resultado": "ERRADO",
+            "nota_percentual": 0,
+            "feedback": "Defina palavras-chave para correção.",
+            "em_falta": [],
+        }
     resp = normalizar(resposta)
     encontradas = [k for k in lista if k and k in resp]
     nota = round(len(encontradas) / len(lista) * 100)
     resultado = "CERTO" if nota >= 60 else "ERRADO"
-    em_falta = [k for k in lista if k not in encontradas]
+    em_falta = [originais[i] for i, k in enumerate(lista) if k not in encontradas]
     fb = f"Encontrou {len(encontradas)}/{len(lista)} palavras-chave ({', '.join(encontradas) or 'nenhuma'})."
     if em_falta:
         fb += f" Em falta: {', '.join(em_falta)}."
     fb += " (Correção aproximada por palavras-chave — sem análise semântica de IA.)"
-    return {"resultado": resultado, "nota_percentual": nota, "feedback": fb}
+    return {"resultado": resultado, "nota_percentual": nota, "feedback": fb, "em_falta": em_falta}
+
+
+def construir_resumo_estudo(erros, total: int, onde: str) -> str:
+    """Resumo em markdown dos pontos falhados, para o aluno saber o que estudar.
+
+    'erros' é uma lista de dicts {"etiqueta", "certa", "explicacao"}.
+    Devolve "" quando não há erros (nada a mostrar).
+    """
+    validos = [e for e in (erros or []) if isinstance(e, dict)]
+    if not validos:
+        return ""
+    linhas = [STR["study_intro"].format(erros=len(validos), total=total), ""]
+    for e in validos:
+        etiqueta = " ".join(str(e.get("etiqueta", "") or "").split())
+        certa = " ".join(str(e.get("certa", "") or "").split())
+        explicacao = " ".join(str(e.get("explicacao", "") or "").split())
+        if explicacao:
+            linhas.append(
+                "- " + STR["study_item_expl"].format(etiqueta=etiqueta, certa=certa, explicacao=explicacao)
+            )
+        else:
+            linhas.append("- " + STR["study_item"].format(etiqueta=etiqueta, certa=certa))
+    linhas += ["", STR["study_tip"].format(onde=onde)]
+    return "\n".join(linhas)
 
 
 # ==========================================================
@@ -529,6 +559,17 @@ STRINGS = {
         "ed_reset_ok": "Base demo reposta.",
         "model_quota_hint": "A quota diária deste modelo esgotou na tua chave gratuita — escolhe um modelo Flash na barra lateral ou tenta mais tarde.",
         "model_switch": "O modelo '{antigo}' atingiu a quota. Mudei automaticamente para '{novo}' e continuei — podes mudar quando quiseres na barra lateral.",
+        "study_title": "Resumo de estudo — como melhorar",
+        "study_intro": "Falhaste **{erros}** de **{total}**. O que rever:",
+        "study_item_expl": "**{etiqueta}** — resposta certa: **{certa}**. {explicacao}",
+        "study_item": "**{etiqueta}** — resposta certa: **{certa}**.",
+        "study_tip": "Estuda estes pontos {onde} e repete o exercício.",
+        "study_where_m1": "no texto explicativo acima",
+        "study_where_m2": "reparando nas definições exatas de cada conceito",
+        "study_missed": "Faltou mencionar: **{chaves}**. Revê estes conceitos no material da aula e reformula a resposta.",
+        "study_q": "Pergunta {n}",
+        "study_lac": "Lacuna {n}",
+        "study_par": "Par {n}",
     },
     "en": {
         "role_label": "Role:",
@@ -672,6 +713,17 @@ STRINGS = {
         "ed_reset_ok": "Demo base restored.",
         "model_quota_hint": "This model's daily quota is exhausted on your free key — pick a Flash model in the sidebar or try again later.",
         "model_switch": "Model '{antigo}' hit its quota. I switched automatically to '{novo}' and continued — you can change it anytime in the sidebar.",
+        "study_title": "Study summary — how to improve",
+        "study_intro": "You missed **{erros}** of **{total}**. What to review:",
+        "study_item_expl": "**{etiqueta}** — correct answer: **{certa}**. {explicacao}",
+        "study_item": "**{etiqueta}** — correct answer: **{certa}**.",
+        "study_tip": "Review these points {onde} and try the exercise again.",
+        "study_where_m1": "in the explanatory text above",
+        "study_where_m2": "by paying attention to each concept's exact definition",
+        "study_missed": "Missing mentions: **{chaves}**. Review these concepts in your class materials and rephrase your answer.",
+        "study_q": "Question {n}",
+        "study_lac": "Gap {n}",
+        "study_par": "Pair {n}",
     },
 }
 
@@ -1191,18 +1243,33 @@ with tab1:
             st.divider()
             st.subheader(STR["result_sub"])
 
+            erros_estudo = []
             acertos_quiz = 0
             for idx, q in perguntas_validas:
                 resp_correta_texto = q["opcoes"][q["resposta_correta"]]
                 escolha = respostas_aluno_m1.get(idx)
                 if escolha is None:
                     st.error(f"P{idx + 1}: {STR['no_answer']}'{resp_correta_texto}'.")
+                    erros_estudo.append(
+                        {
+                            "etiqueta": STR["study_q"].format(n=idx + 1),
+                            "certa": resp_correta_texto,
+                            "explicacao": q.get("explicacao", ""),
+                        }
+                    )
                 elif escolha == resp_correta_texto:
                     acertos_quiz += 1
                     st.success(f"P{idx + 1}: {STR['correct']}{q.get('explicacao', '')}")
                 else:
                     st.error(
                         f"P{idx + 1}: {STR['incorrect']}'{resp_correta_texto}'{STR['explic_label']}{q.get('explicacao', '')}"
+                    )
+                    erros_estudo.append(
+                        {
+                            "etiqueta": STR["study_q"].format(n=idx + 1),
+                            "certa": resp_correta_texto,
+                            "explicacao": q.get("explicacao", ""),
+                        }
                     )
 
             acertos_lacunas = 0
@@ -1220,12 +1287,23 @@ with tab1:
                     st.error(
                         f"{STR['exercicio']}{idx_l + 1}: {STR['lac_bad']}'{respostas_lacunas.get(idx_l, '')}'{STR['lac_expected']}'{lacuna['palavra_oculta']}'."
                     )
+                    erros_estudo.append(
+                        {
+                            "etiqueta": STR["study_lac"].format(n=idx_l + 1),
+                            "certa": lacuna["palavra_oculta"],
+                            "explicacao": "",
+                        }
+                    )
 
             total = len(perguntas_validas) + lacunas_validas
             if total == 0:
                 st.warning(STR["no_valid"])
             else:
                 st.metric(STR["grade_quiz"], f"{((acertos_quiz + acertos_lacunas) / total) * 100:.0f}%")
+                resumo = construir_resumo_estudo(erros_estudo, total, STR["study_where_m1"])
+                if resumo:
+                    with st.expander(STR["study_title"], expanded=True, icon=":material/school:"):
+                        st.markdown(resumo)
 
 # ----------------------------------------------------------
 # MÓDULO 2
@@ -1311,16 +1389,35 @@ with tab2:
 
             if st.button(STR["btn_check_m2"], icon=":material/check_circle:", key="btn_valida_m2"):
                 acertos = 0
+                erros_estudo = []
                 for idx, p in enumerate(pares):
                     d_user = respostas_assoc.get(idx, STR["choose"])
                     if d_user == STR["choose"]:
                         st.warning(f"{STR['assoc_no_answer']}'{p['conceito']}'.")
+                        erros_estudo.append(
+                            {
+                                "etiqueta": f"{STR['study_par'].format(n=idx + 1)}: {p['conceito']}",
+                                "certa": p["definicao"],
+                                "explicacao": "",
+                            }
+                        )
                     elif d_user == p["definicao"]:
                         acertos += 1
                         st.success(f"Correto: '{p['conceito']}' {STR['assoc_good']}")
                     else:
                         st.error(f"{STR['assoc_bad']}'{p['conceito']}'. {STR['assoc_hint']}")
+                        erros_estudo.append(
+                            {
+                                "etiqueta": f"{STR['study_par'].format(n=idx + 1)}: {p['conceito']}",
+                                "certa": p["definicao"],
+                                "explicacao": "",
+                            }
+                        )
                 st.metric(STR["assoc_result"], f"{acertos}/{len(pares)} {STR['assoc_pairs_ok']}")
+                resumo = construir_resumo_estudo(erros_estudo, len(pares), STR["study_where_m2"])
+                if resumo:
+                    with st.expander(STR["study_title"], expanded=True, icon=":material/school:"):
+                        st.markdown(resumo)
 
 # ----------------------------------------------------------
 # MÓDULO 3
@@ -1357,6 +1454,9 @@ with tab3:
                 with c2:
                     st.metric(STR["score"], f"{r['nota_percentual']}%")
                 st.markdown(f"**{STR['feedback_label']}** {r['feedback']}")
+                if r["resultado"] != "CERTO" and r.get("em_falta"):
+                    with st.expander(STR["study_title"], expanded=True, icon=":material/school:"):
+                        st.markdown(STR["study_missed"].format(chaves=", ".join(r["em_falta"])))
     elif is_student:
         # ---- Aluno: responde à pergunta e imagem já preparadas pelo professor ----
         if "pergunta_multimodal" in st.session_state and "img_bytes" in st.session_state:

@@ -18,6 +18,9 @@ Trabalho académico — DSI (Design de Sistemas Interativos).
 - 🌍 Interface em **Português / English** (seletor na barra lateral).
 - ✏️ **Editor offline** (Professor): editar texto, adicionar perguntas e lacunas, repor demo.
 - ✨ Interface **clean e minimal**: só componentes nativos do Streamlit, sem CSS custom.
+- 🧭 **Resumo de estudo automático**: quando há erros (quiz, lacunas, jogo ou resposta aberta),
+  a app mostra um pequeno resumo com a resposta certa, a explicação de cada falha e o que rever —
+  funciona também offline.
 
 ## 🚀 Como correr
 
@@ -34,13 +37,13 @@ Abre `http://localhost:8501`. Na barra lateral escolhe:
 ## ✅ Testes
 
 ```bash
-python -m unittest test_edugen -v   # 108 testes (lógica + estáticos + UI + quota)
+python -m unittest test_edugen -v   # 118 testes (lógica + estáticos + UI + quota)
 ```
 
 Smoke test end-to-end da app real (requer dependências instaladas):
 
 ```bash
-python /tmp/opencode/apptest_edugen.py   # 13 fluxos: papéis × idiomas × modos + UI clean
+python /tmp/opencode/apptest_edugen.py   # 14 fluxos: papéis × idiomas × modos + resumos de estudo
 ```
 
 ## 🗂️ Estrutura

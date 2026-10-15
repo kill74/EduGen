@@ -233,6 +233,62 @@ class TestKeywords(unittest.TestCase):
         r = corrigir_por_keywords("qualquer resposta", "  ")
         self.assertEqual(r["nota_percentual"], 0)
 
+    def test_em_falta_com_caixa_original(self):
+        r = corrigir_por_keywords("O ADN tem hereditariedade.", "ADN, Hereditariedade, Replicação")
+        self.assertEqual(r["em_falta"], ["Replicação"])
+        self.assertIn("Replicação", r["feedback"])
+
+    def test_em_falta_vazia_quando_tudo_encontrado(self):
+        r = corrigir_por_keywords("A memória usa frames fixos", "memória, frames")
+        self.assertEqual(r["em_falta"], [])
+
+    def test_em_falta_vazia_sem_keywords(self):
+        r = corrigir_por_keywords("qualquer resposta", "  ")
+        self.assertEqual(r["em_falta"], [])
+
+
+class TestResumoEstudo(unittest.TestCase):
+    """Resumo pós-erros: onde falhámos e o que estudar (funciona offline)."""
+
+    def setUp(self):
+        H["STR"] = {
+            "study_intro": "Falhaste {erros} de {total}. O que rever:",
+            "study_item_expl": "**{etiqueta}** — resposta certa: **{certa}**. {explicacao}",
+            "study_item": "**{etiqueta}** — resposta certa: **{certa}**.",
+            "study_tip": "Estuda {onde}.",
+        }
+
+    def tearDown(self):
+        H.pop("STR", None)
+
+    def test_sem_erros_devolve_vazio(self):
+        self.assertEqual(H["construir_resumo_estudo"]([], 4, "aqui"), "")
+        self.assertEqual(H["construir_resumo_estudo"](None, 4, "aqui"), "")
+
+    def test_lista_com_e_sem_explicacao(self):
+        r = H["construir_resumo_estudo"](
+            [
+                {"etiqueta": "Pergunta 1", "certa": "Timina", "explicacao": "No  ADN usa-se T."},
+                {"etiqueta": "Lacuna 2", "certa": "nucleótidos", "explicacao": "   "},
+            ],
+            4,
+            "no texto",
+        )
+        self.assertIn("Falhaste 2 de 4", r)
+        self.assertIn("**Pergunta 1**", r)
+        self.assertIn("**Timina**", r)
+        self.assertIn("No ADN usa-se T.", r)  # espaços colapsados
+        self.assertIn("**Lacuna 2**", r)
+        self.assertIn("nucleótidos", r)
+        self.assertIn("Estuda no texto.", r)
+        self.assertNotIn("None", r)
+
+    def test_ignora_entradas_invalidas(self):
+        r = H["construir_resumo_estudo"]([{"etiqueta": "E"}, None], 1, "onde")
+        self.assertIn("Falhaste 1 de 1", r)
+        self.assertIn("**E**", r)
+        self.assertIn("Estuda onde.", r)
+
 
 class TestFluxoCorrecao(unittest.TestCase):
 
@@ -320,6 +376,15 @@ class TestEstatico(unittest.TestCase):
     def test_imagem_robusta(self):
         self.assertIn('.convert("RGB")', self.src)
         self.assertIn('mime_type="image/png"', self.src)
+
+    def test_resumo_estudo_nos_tres_modulos(self):
+        self.assertIn("def construir_resumo_estudo", self.src)
+        # def + chamadas no M1 e no M2 (o M3 usa study_missed diretamente)
+        self.assertEqual(self.src.count("construir_resumo_estudo("), 3)
+        # expander de estudo igual nos três módulos (M1, M2 e M3 offline)
+        self.assertEqual(self.src.count('st.expander(STR["study_title"]'), 3)
+        self.assertIn('STR["study_title"]', self.src)
+        self.assertIn('STR["study_missed"]', self.src)
 
 
 class TestUX(unittest.TestCase):
