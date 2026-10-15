@@ -60,6 +60,9 @@ Os recomendados para o tier gratuito aparecem primeiro; Pro/preview vão para o 
 `gemini-2.5-flash-lite` · `gemini-2.5-flash` (chaves antigas).
 Os nomes `gemini-1.5-*` e `gemini-2.0-*` foram desligados pela Google e já não existem na API.
 
-**Quota esgotada (429)?** A app reage sozinha: se o modelo escolhido esgotar a quota
-diária, tenta automaticamente até 2 alternativas Flash, avisa-te e passa a usá-las —
-sem perder a geração em curso.
+**Escolha automática (padrão):** em cada geração a app usa o modelo gratuito **com menos
+uso na sessão** (começa no `gemini-3.8-flash`) e distribui o trabalho pelos restantes
+Flash à medida que vão sendo usados. Podes fixar um modelo concreto na barra lateral.
+
+**Quota esgotada (429)?** A app reage sozinha: marca o modelo como cheio, passa ao
+próximo menos usado e avisa-te — sem perder a geração em curso.

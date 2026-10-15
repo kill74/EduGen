@@ -587,6 +587,9 @@ class TestModelosEstatico(unittest.TestCase):
         self.assertEqual(src.count("chamar_gemini("), 4)  # definição + 3 call sites
         self.assertEqual(src.count("client.models.generate_content"), 1)  # só dentro do wrapper
         self.assertIn('"_modelo_pendente"', src)
+        self.assertIn("AUTO_MODELO", src)
+        self.assertIn("def _candidatos_auto", src)
+        self.assertIn('"_uso_modelos"', src)
 
 
 class TestBancosOffline(unittest.TestCase):
@@ -767,6 +770,56 @@ class TestFallbackQuota(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             H["chamar_gemini"]("prompt")
         self.assertEqual(modelos.chamadas, ["gemini-3.8-flash"])
+
+    def test_auto_escolhe_o_menos_usado(self):
+        self.st.session_state["_modelos_lista"] = [
+            "gemini-3.8-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-3.6-flash",
+        ]
+        self.st.session_state["_uso_modelos"] = {"gemini-3.8-flash": 3, "gemini-3.6-flash": 1}
+        cliente, modelos = self._cliente({})
+        H["client"] = cliente
+        H["model_name"] = H["AUTO_MODELO"]
+        res = H["chamar_gemini"]("prompt")
+        self.assertEqual(res.text, "resposta ok")
+        self.assertEqual(modelos.chamadas, ["gemini-3.5-flash-lite"])
+        self.assertEqual(self.st.session_state["_uso_modelos"]["gemini-3.5-flash-lite"], 1)
+        self.assertNotIn("_modelo_pendente", self.st.session_state)
+
+    def test_auto_quota_marca_cheio_e_segue(self):
+        self.st.session_state["_modelos_lista"] = [
+            "gemini-3.8-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-3.6-flash",
+        ]
+        cliente, modelos = self._cliente({"gemini-3.8-flash": "quota"})
+        H["client"] = cliente
+        H["model_name"] = H["AUTO_MODELO"]
+        res = H["chamar_gemini"]("prompt")
+        self.assertEqual(res.text, "resposta ok")
+        self.assertEqual(modelos.chamadas, ["gemini-3.8-flash", "gemini-3.5-flash-lite"])
+        uso = self.st.session_state["_uso_modelos"]
+        self.assertGreaterEqual(uso["gemini-3.8-flash"], 50)
+        self.assertEqual(uso["gemini-3.5-flash-lite"], 1)
+        self.assertEqual(
+            self.st.session_state["_modelo_trocado"],
+            ("gemini-3.8-flash", "gemini-3.5-flash-lite"),
+        )
+        self.assertNotIn("_modelo_pendente", self.st.session_state)
+
+    def test_candidatos_auto_ordenam_por_uso(self):
+        self.st.session_state["_modelos_lista"] = [
+            "gemini-3.1-pro-preview",
+            "gemini-2.5-flash",
+            "gemini-3.8-flash",
+            "gemini-3.5-flash-lite",
+        ]
+        self.st.session_state["_uso_modelos"] = {"gemini-3.5-flash-lite": 2}
+        self.assertEqual(
+            H["_candidatos_auto"](),
+            ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-3.5-flash-lite"],
+        )
 
     def test_dica_modelo(self):
         dm = H["dica_modelo"]

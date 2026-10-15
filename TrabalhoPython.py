@@ -396,7 +396,9 @@ STRINGS = {
         "mode_offline": ":material/cloud_off: Offline / Demo (sem chave)",
         "mode_help": "O modo Offline usa um banco local de exemplos e correção sem IA. Ideal para demonstrações sem internet/chave.",
         "model_label": "Modelo de IA Generativa:",
-        "model_help": "A lista é obtida da tua própria chave. Recomendados: gemini-3.8-flash (mais recente) ou gemini-3.5-flash-lite (muito económico); gemini-2.5-* para chaves antigas.",
+        "model_auto": "Automático — modelo com menos uso",
+        "no_free_model": "Nenhum modelo gratuito disponível para esta chave — escolhe um modelo Flash na barra lateral.",
+        "model_help": "A lista é obtida da tua própria chave. Em Automático, cada geração usa o modelo gratuito com menos uso nesta sessão (começa no gemini-3.8-flash); se a quota esgotar, passa sozinho para o próximo.",
         "offline_info": ":material/cloud_off: Modo Offline: sem chamadas à API. Módulos 1 e 2 usam banco local; Módulo 3 usa pergunta manual + palavras-chave.",
         "online_cfg": "Configure o acesso à API do Google Gemini.",
         "api_key_label": "Chave API do Gemini:",
@@ -537,7 +539,9 @@ STRINGS = {
         "mode_offline": ":material/cloud_off: Offline / Demo (no key)",
         "mode_help": "Offline mode uses a local bank of examples and non-AI correction. Ideal for demos without internet/key.",
         "model_label": "Generative AI Model:",
-        "model_help": "The list is fetched from your own key. Recommended: gemini-3.8-flash (latest) or gemini-3.5-flash-lite (very cheap); gemini-2.5-* for older keys.",
+        "model_auto": "Automatic — least-used model",
+        "no_free_model": "No free model available for this key — pick a Flash model in the sidebar.",
+        "model_help": "The list is fetched from your own key. In Automatic, each generation uses the free model with the least usage in this session (starting with gemini-3.8-flash); if quota runs out, it moves on by itself.",
         "offline_info": ":material/cloud_off: Offline mode: no API calls. Modules 1 and 2 use a local bank; Module 3 uses manual question + keywords.",
         "online_cfg": "Configure Google Gemini API access.",
         "api_key_label": "Gemini API Key:",
@@ -684,11 +688,30 @@ MODELOS_RECOMENDADOS = [
     "gemini-2.5-flash",
 ]
 
+# Sentinela da opção "Automático": em cada geração usa o modelo gratuito
+# com menos uso nesta sessão (proxy de "menos tráfego"/quota por gastar).
+AUTO_MODELO = "__auto__"
+
 
 def _modelo_pro(nome: str) -> int:
     """Chave de ordenação: 1 para Pro/preview (sem quota gratuita) — vão para o fim."""
     n = str(nome).lower()
     return 1 if ("pro" in n or "preview" in n or "exp" in n) else 0
+
+
+def _candidatos_auto(excluir=()) -> list:
+    """Modelos gratuitos (não-Pro) ordenados por menos uso primeiro.
+
+    O uso fica em session_state["_uso_modelos"]: +1 por chamada bem sucedida,
+    +50 quando a quota esgota (fica "cheio" nesta sessão). Empates desempatam
+    pela ordem recomendada — a frio, começa no gemini-3.8-flash.
+    """
+    disponiveis = st.session_state.get("_modelos_lista") or list(MODELOS_RECOMENDADOS)
+    uso = st.session_state.get("_uso_modelos") or {}
+    pref = {m: i for i, m in enumerate(MODELOS_RECOMENDADOS)}
+    livres = [m for m in disponiveis if m not in excluir and not _modelo_pro(m)]
+    livres.sort(key=lambda m: (uso.get(m, 0), pref.get(m, 99), m))
+    return livres
 
 
 def ordenar_modelos(disponiveis, limite: int = 30) -> list:
@@ -729,30 +752,46 @@ def erro_quota(erro) -> bool:
 
 
 def _alternativas_modelo(escolhido: str, limite: int = 2) -> list:
-    """Alternativas não-Pro para tentar quando a quota do modelo escolhido esgota."""
-    disponiveis = st.session_state.get("_modelos_lista") or list(MODELOS_RECOMENDADOS)
-    return [m for m in disponiveis if m != escolhido and not _modelo_pro(m)][:limite]
+    """Alternativas não-Pro (menos usadas primeiro) quando a quota esgota."""
+    return _candidatos_auto(excluir={escolhido})[:limite]
 
 
 def chamar_gemini(contents, config=None):
-    """generate_content resiliente: se o modelo escolhido esgotar a quota (429),
-    tenta até 2 alternativas Flash e memoriza a troca para os próximos runs."""
+    """generate_content com escolha inteligente de modelo.
+
+    Em "Automático", usa sempre o modelo gratuito com menos uso nesta sessão;
+    se a quota esgotar (429), marca-o como cheio e passa ao próximo. Com um
+    modelo fixo escolhido na barra lateral, tenta-o e, em quota, passa para o
+    menos usado e memoriza a troca para os próximos runs.
+    """
     global client, model_name
-    escolhido = model_name
+    explicito = model_name != AUTO_MODELO
+    escolhido = model_name if explicito else ""
+    if explicito:
+        candidatos = [escolhido] + _alternativas_modelo(escolhido)
+    else:
+        candidatos = _candidatos_auto()[:3]
+    if not candidatos:
+        raise RuntimeError(STR["no_free_model"])
     primeiro_erro = None
-    for i, m in enumerate([escolhido] + _alternativas_modelo(escolhido)):
+    for i, m in enumerate(candidatos):
         try:
             res = client.models.generate_content(model=m, contents=contents, config=config)
+            uso = st.session_state.setdefault("_uso_modelos", {})
+            uso[m] = uso.get(m, 0) + 1
             if i > 0:
-                model_name = m
-                st.session_state["_modelo_trocado"] = (escolhido, m)
-                st.session_state["_modelo_pendente"] = m
+                st.session_state["_modelo_trocado"] = (candidatos[0], m)
+                if explicito:
+                    model_name = m
+                    st.session_state["_modelo_pendente"] = m
             return res
         except Exception as e:
             if primeiro_erro is None:
                 primeiro_erro = e
             if not erro_quota(e):
                 raise
+            uso = st.session_state.setdefault("_uso_modelos", {})
+            uso[m] = uso.get(m, 0) + 50
     raise primeiro_erro
 
 
@@ -806,7 +845,7 @@ with st.sidebar:
 
     client = None
     api_key = ""
-    modelo_selecionado = MODELOS_RECOMENDADOS[0]
+    modelo_selecionado = AUTO_MODELO
 
     if offline:
         st.info(STR["offline_info"])
@@ -848,8 +887,10 @@ with st.sidebar:
                         ordenar_modelos(listados) if listados else list(MODELOS_RECOMENDADOS)
                     )
                     st.session_state["_modelos_fallback"] = listados is None
-                    if st.session_state.get("modelo") not in st.session_state["_modelos_lista"]:
-                        st.session_state["modelo"] = st.session_state["_modelos_lista"][0]
+                    st.session_state["_uso_modelos"] = {}
+                    opcoes = [AUTO_MODELO] + st.session_state["_modelos_lista"]
+                    if st.session_state.get("modelo") not in opcoes:
+                        st.session_state["modelo"] = AUTO_MODELO
 
                 if st.session_state.get("_modelos_fallback"):
                     st.warning(STR["model_list_fallback"])
@@ -864,8 +905,9 @@ with st.sidebar:
 
                 modelo_selecionado = st.selectbox(
                     STR["model_label"],
-                    st.session_state["_modelos_lista"],
+                    [AUTO_MODELO] + st.session_state["_modelos_lista"],
                     index=0,
+                    format_func=lambda m: STR["model_auto"] if m == AUTO_MODELO else m,
                     key="modelo",
                     help=STR["model_help"],
                 )
@@ -895,7 +937,8 @@ def gerar_com_gemini(prompt, usar_json: bool = False):
         res = chamar_gemini(prompt, config=cfg)
         return res.text
     except Exception as e:
-        raise RuntimeError(f"{STR['gemini_call_err']} ({model_name}): {e}{dica_modelo(e)}") from e
+        etiqueta = STR["model_auto"] if model_name == AUTO_MODELO else model_name
+        raise RuntimeError(f"{STR['gemini_call_err']} ({etiqueta}): {e}{dica_modelo(e)}") from e
 
 
 def avaliar_resposta_aberta(img_bytes: bytes, pergunta: str, resposta: str):
