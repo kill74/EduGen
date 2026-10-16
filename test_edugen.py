@@ -291,7 +291,7 @@ class TestResumoEstudo(unittest.TestCase):
 
 
 class TestHero(unittest.TestCase):
-    """HTML do cabeçalho hero (gradiente animado + chip de estado)."""
+    """HTML do cabeçalho hero (painel editorial + chip de estado)."""
 
     def test_html_completo(self):
         h = H["construir_hero"]("EduGen X", "Sub Y", "Offline / Demo", "off")
@@ -300,6 +300,16 @@ class TestHero(unittest.TestCase):
         self.assertIn("EduGen X", h)
         self.assertIn("Sub Y", h)
         self.assertIn("edugen-hero-badge--off", h)
+
+    def test_marca_e_assinatura(self):
+        h = H["construir_hero"]("EduGen: Gerador e Avaliador", "S", "c")
+        self.assertIn('class="edugen-brand">EduGen<', h)
+        self.assertIn('class="edugen-tagline">Gerador e Avaliador<', h)
+
+    def test_titulo_sem_dois_pontos(self):
+        h = H["construir_hero"]("EduGen X", "S", "c")
+        self.assertIn('class="edugen-brand">EduGen X<', h)
+        self.assertNotIn("edugen-tagline", h)
 
     def test_online_sem_classe_off(self):
         h = H["construir_hero"]("T", "S", "Online", "on")
@@ -420,12 +430,14 @@ class TestEstatico(unittest.TestCase):
         self.assertIn('STR["study_missed"]', self.src)
 
     def test_identidade_animada(self):
-        self.assertIn("@keyframes ed-gradient", self.src)
+        self.assertIn("@keyframes ed-rise", self.src)
+        self.assertIn("@keyframes ed-drift", self.src)
         self.assertIn("def construir_hero", self.src)
+        self.assertIn("edugen-brand", self.src)
         self.assertIn("def celebrar", self.src)
         # def + 4 chamadas (M1, M2, M3 offline e avaliação online)
         self.assertEqual(self.src.count("celebrar()"), 5)
-        # botões principais com o estilo primário (gradiente)
+        # botões principais com o estilo primário
         self.assertEqual(self.src.count('type="primary"'), 8)
 
 
@@ -745,8 +757,9 @@ class TestUIClean(unittest.TestCase):
     def test_config_unico_e_clean(self):
         self.assertIn('base = "light"', self.cfg)
         self.assertNotIn("[theme.dark]", self.cfg)
-        self.assertIn("Plus Jakarta Sans", self.cfg)
-        self.assertIn('primaryColor = "#6D28D9"', self.cfg)
+        self.assertIn("Fraunces", self.cfg)
+        self.assertIn("Manrope", self.cfg)
+        self.assertIn('primaryColor = "#5B21B6"', self.cfg)
         self.assertIn("[theme.sidebar]", self.cfg)
         self.assertNotIn("VT323", self.cfg)
         self.assertNotIn('baseRadius = "0px"', self.cfg)

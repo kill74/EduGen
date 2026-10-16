@@ -1,48 +1,48 @@
-# EduGen — identidade visual própria: indigo/violeta moderno, Plus Jakarta Sans
-# e barra lateral escura contrastante. Aparência única e travada (sem toggle).
+# EduGen — identidade editorial: papel quente, tinta violeta e serifa expressiva.
+# Tipografia: Fraunces (títulos) + Manrope (texto) + JetBrains Mono (código).
 
 [theme]
 base = "light"
-primaryColor = "#6D28D9"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F5F3FF"
-textColor = "#1E1B4B"
-linkColor = "#6D28D9"
-borderColor = "#E4E1F7"
-codeTextColor = "#4C1D95"
-codeBackgroundColor = "#F5F3FF"
-font = "'Plus Jakarta Sans':https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
-headingFont = "'Plus Jakarta Sans':https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+primaryColor = "#5B21B6"
+backgroundColor = "#FBF9F6"
+secondaryBackgroundColor = "#F3EEE6"
+textColor = "#23201C"
+linkColor = "#5B21B6"
+borderColor = "#E7DFD4"
+codeTextColor = "#5B21B6"
+codeBackgroundColor = "#F3EEE6"
+font = "'Manrope':https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+headingFont = "'Fraunces':https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap"
 codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
-headingFontSizes = ["40px", "27px", "22px", "18px", "16px", "14px"]
-headingFontWeights = [800, 700, 600, 600, 500, 500]
-metricValueFontSize = "2.5rem"
-metricValueFontWeight = 800
+headingFontSizes = ["44px", "29px", "23px", "19px", "16px", "14px"]
+headingFontWeights = [700, 600, 600, 600, 500, 500]
+metricValueFontSize = "3rem"
+metricValueFontWeight = 600
 linkUnderline = false
-baseRadius = "0.75rem"
-buttonRadius = "0.75rem"
+baseRadius = "0.65rem"
+buttonRadius = "0.65rem"
 showWidgetBorder = false
 showSidebarBorder = false
 paddingTop = "2rem"
 paddingBottom = "2.5rem"
-greenColor = "#059669"
-redColor = "#DC2626"
-yellowColor = "#D97706"
-orangeColor = "#EA580C"
-blueColor = "#4F46E5"
-violetColor = "#7C3AED"
-grayColor = "#6B7280"
-chartCategoricalColors = ["#6D28D9", "#4F46E5", "#0EA5E9", "#059669", "#D97706", "#DC2626", "#7C3AED"]
+greenColor = "#2E7D5B"
+redColor = "#B3261E"
+yellowColor = "#B45309"
+orangeColor = "#C2410C"
+blueColor = "#1D4ED8"
+violetColor = "#6D28D9"
+grayColor = "#6E6459"
+chartCategoricalColors = ["#5B21B6", "#1D4ED8", "#0F766E", "#B45309", "#B3261E", "#7C3AED", "#D97757"]
 
-# Barra lateral escura (indigo profundo) com texto claro — contraste premium.
+# Barra lateral em tinta profunda com texto quente — contraste editorial.
 [theme.sidebar]
-backgroundColor = "#1E1B4B"
-secondaryBackgroundColor = "#312E81"
-codeBackgroundColor = "#312E81"
-textColor = "#EDE9FE"
-borderColor = "#4338CA"
-primaryColor = "#A78BFA"
-linkColor = "#C4B5FD"
+backgroundColor = "#1C1823"
+secondaryBackgroundColor = "#2A2436"
+codeBackgroundColor = "#2A2436"
+textColor = "#EDE7E0"
+borderColor = "#3B3350"
+primaryColor = "#C4B5FD"
+linkColor = "#D8CCFF"
 showWidgetBorder = false
 paddingTop = "1.25rem"
 paddingBottom = "1.5rem"

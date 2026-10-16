@@ -36,6 +36,7 @@ def pagina_tem(at, texto):
 at = novo()
 sem_excecao(at, "1")
 assert at.sidebar.radio(key="lang").value == "Português"
+assert at.sidebar.radio(key="modo").value == "offline", "arranque devia ser Offline/Demo"
 assert any("<h1" in h.value and "EduGen" in h.value for h in at.html), [h.value[:60] for h in at.html]
 assert any("edugen-hero" in h.value for h in at.html)
 assert not at.menu_button
@@ -85,6 +86,7 @@ print("6. papel Aluno: conteudo mantem-se, geracao escondida OK")
 # 7. EN: trocar idioma e confirmar texto EN
 at3 = novo()
 at3.sidebar.radio(key="lang").set_value("English").run()
+at3.sidebar.radio(key="modo").set_value("online").run()
 sem_excecao(at3, "7")
 assert pagina_tem(at3, "Gemini API key"), "texto EN (chave em falta) nao encontrado"
 at3.sidebar.radio(key="modo").set_value("offline").run()
