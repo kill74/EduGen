@@ -38,13 +38,13 @@ CSS_UI = """
 .edugen-hero { position: relative; overflow: hidden; border-radius: 18px; padding: 2.15rem 2.4rem 2.2rem;
     color: #F3EEE6; background-color: #1C1823;
     background-image:
-        radial-gradient(120% 150% at 88% -30%, rgba(124, 58, 237, 0.50), transparent 62%),
-        radial-gradient(90% 130% at -8% 118%, rgba(217, 119, 87, 0.22), transparent 58%),
+        radial-gradient(130% 170% at 88% -30%, rgba(124, 58, 237, 0.50), rgba(124, 58, 237, 0.18) 42%, transparent 80%),
+        radial-gradient(110% 150% at -8% 118%, rgba(217, 119, 87, 0.22), rgba(217, 119, 87, 0.08) 40%, transparent 78%),
         repeating-linear-gradient(0deg, rgba(243, 238, 230, 0.05) 0 1px, transparent 1px 30px),
         repeating-linear-gradient(90deg, rgba(243, 238, 230, 0.05) 0 1px, transparent 1px 30px);
     box-shadow: 0 30px 60px -42px rgba(28, 24, 35, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
 .edugen-hero::after { content: ""; position: absolute; width: 380px; height: 380px; right: -120px; top: -160px;
-    border-radius: 50%; background: radial-gradient(circle, rgba(196, 181, 253, 0.45), transparent 65%);
+    border-radius: 50%; background: radial-gradient(circle, rgba(196, 181, 253, 0.45), rgba(196, 181, 253, 0.14) 45%, transparent 82%);
     filter: blur(30px); animation: ed-drift 11s ease-in-out infinite; pointer-events: none; }
 .edugen-hero > * { position: relative; z-index: 1; }
 .edugen-hero-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.34rem 0.85rem;
@@ -149,8 +149,11 @@ CSS_UI = """
 [data-testid="stMain"] h3 { letter-spacing: -0.01em; }
 
 /* ---- Barra lateral ----------------------------------------- */
-[data-testid="stSidebar"] { border-right: 1px solid rgba(243, 238, 230, 0.08); }
-[data-testid="stSidebarContent"] { background-image: radial-gradient(340px 260px at 18% -4%, rgba(124, 58, 237, 0.38), transparent 68%); }
+/* Brilho com paragens intermédias — transição suave, sem cortes de cor. */
+[data-testid="stSidebar"] { border-right: 1px solid rgba(243, 238, 230, 0.08);
+    background-image:
+        radial-gradient(640px 560px at 20% -10%, rgba(124, 58, 237, 0.40), rgba(124, 58, 237, 0.18) 44%, rgba(124, 58, 237, 0.06) 68%, transparent 90%),
+        linear-gradient(180deg, rgba(124, 58, 237, 0.05), transparent 32%); }
 [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p { font-size: 0.7rem !important; font-weight: 600 !important;
     letter-spacing: 0.14em !important; text-transform: uppercase !important; color: rgba(237, 231, 224, 0.62) !important; }
 [data-testid="stSidebarLogo"] { filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.45)); transition: transform 0.3s ease; }
