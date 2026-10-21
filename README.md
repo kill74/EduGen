@@ -1,5 +1,7 @@
 # EduGen — Gerador e Avaliador Educativo Inteligente
 
+[![Testes](https://github.com/kill74/EduGen/actions/workflows/ci.yml/badge.svg)](https://github.com/kill74/EduGen/actions/workflows/ci.yml)
+
 Aplicação web interativa, desenvolvida em Python com Streamlit, que gera recursos didáticos
 a partir de um tema de aula (texto explicativo, questionário de escolha múltipla e exercícios
 de preenchimento de lacunas), cria um jogo de associação de conceitos e avalia respostas de
@@ -13,15 +15,15 @@ Interativos**. O enunciado pedia que o trabalho fosse realizado **recorrendo exc
 inteligência artificial**: a conceção, a implementação e a documentação resultaram de um
 processo iterativo com modelos de IA generativa, com revisão e validação humana em cada passo.
 
-O repositório reflete esse processo — inclui a aplicação, uma suite de 126 testes unitários
+O repositório reflete esse processo — inclui a aplicação, uma suite de 130 testes unitários
 (sem dependências externas) e um smoke test end-to-end que exercita a aplicação real através
-do *AppTest* do Streamlit (11 fluxos).
+do *AppTest* do Streamlit (12 fluxos).
 
 ## Funcionalidades
 
 | Módulo | Online (Gemini) | Offline / Demo (sem chave) |
 |---|---|---|
-| Conteúdo + Quiz + Lacunas | Geração por IA a partir do tema pedido | Banco local (ADN, Sistemas Operativos) + template genérico |
+| Conteúdo + Quiz + Lacunas | Geração por IA a partir do tema pedido | Bancos locais (ADN, Fotossíntese, Sistemas Operativos) + template genérico |
 | Jogo de associação conceito ↔ definição | 4 pares gerados por IA | Pares do banco local |
 | Avaliação multimodal | Pergunta analítica sobre imagem + correção semântica por IA | Pergunta manual + correção por palavras-chave |
 
@@ -32,6 +34,9 @@ do *AppTest* do Streamlit (11 fluxos).
 - **Bilingue** — interface integral em Português e English, com paridade garantida por testes.
 - **Editor offline (Professor)** — editar o texto, adicionar ou remover perguntas e lacunas e
   repor a base demo; o estado sobrevive à mudança de módulo, de papel e de idioma.
+- **Exportar/Imprimir (Professor)** — descarrega o recurso em Markdown (texto, quiz com
+  chaves de resposta, lacunas e pares do jogo) para arquivar ou converter em PDF; a impressão
+  direta (Ctrl+P) sai limpa, sem barra lateral.
 - **Resumo de estudo automático** — quando há erros (quiz, lacunas, jogo de associação ou
   resposta aberta), a aplicação mostra a resposta certa, a explicação de cada falha e o que
   rever; funciona igualmente offline.
@@ -94,9 +99,12 @@ o trabalho pelos restantes à medida que vão sendo usados.
 ## Testes
 
 ```bash
-python -m unittest test_edugen -v    # 126 testes: lógica, strings, estáticos, UI e quota
-python smoke_fluxos.py               # 11 fluxos end-to-end sobre a aplicação real (AppTest)
+python -m unittest test_edugen -v    # 130 testes: lógica, strings, estáticos, UI e quota
+python smoke_fluxos.py               # 12 fluxos end-to-end sobre a aplicação real (AppTest)
 ```
+
+Os testes correm também automaticamente no GitHub Actions (`.github/workflows/ci.yml`) a cada
+push — o badge no topo do README mostra o último resultado.
 
 A suite unitária usa apenas a biblioteca padrão e cobre a extração segura de JSON, a
 normalização de texto, a correção por palavras-chave, a quota e o fallback de modelos, a
@@ -109,7 +117,10 @@ três módulos em modo offline, os dois papéis, os dois idiomas e o fluxo onlin
 TrabalhoPython.py        # aplicação Streamlit (lógica + interface)
 test_edugen.py           # suite de testes unitários (só biblioteca padrão)
 smoke_fluxos.py          # smoke test end-to-end (Streamlit AppTest)
+.github/workflows/ci.yml # integração contínua: testes a cada push
 .streamlit/config.toml   # tema: tipografia, paleta e barra lateral
+.streamlit/secrets.toml.example # modelo para a chave API (modo Online)
+LICENSE                  # MIT, com nota de uso académico
 assets/edugen_mark.png   # marca da aplicação (logótipo e favicon)
 requirements.txt         # dependências
 ```
@@ -132,7 +143,7 @@ student answers with Google Gemini, including a fully functional Offline/Demo mo
 no API key. It was developed for the **DSI — Design of Interactive Systems** course, under a
 brief that required the project to be built **exclusively with artificial intelligence**:
 conception, code and documentation were produced iteratively with generative AI models and
-reviewed by a human. The repository ships the application, 126 unit tests and an 11-flow
+reviewed by a human. The repository ships the application, 130 unit tests and a 12-flow
 end-to-end smoke test.
 
 ---

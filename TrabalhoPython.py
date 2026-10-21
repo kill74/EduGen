@@ -166,6 +166,13 @@ CSS_UI = """
 [data-testid="stSidebar"] ::-webkit-scrollbar-thumb { background: rgba(243, 238, 230, 0.22); }
 ::-webkit-scrollbar-track { background: transparent; }
 
+/* ---- Impressão: recurso e resultados limpos ----------------- */
+@media print {
+    [data-testid="stSidebar"], [data-testid="stHeader"], [data-testid="stBottom"] { display: none !important; }
+    .edugen-hero::after, [data-testid="stBaseButton"] { display: none !important; }
+    [data-testid="stMetric"], [data-testid="stAlert"] { box-shadow: none !important; animation: none !important; }
+}
+
 /* ---- Acessibilidade: respeitar quem prefere menos movimento - */
 @media (prefers-reduced-motion: reduce) {
     .edugen-hero::after, .edugen-hero-badge, .edugen-brand, .edugen-tagline, .edugen-hero-sub,
@@ -394,6 +401,58 @@ BANCO_M1_SO = {
 }
 
 
+BANCO_M1_FOTO = {
+    "texto_explicativo": (
+        "A fotossíntese é o processo pelo qual plantas, algas e algumas bactérias "
+        "transformam energia luminosa em energia química. A clorofila, nos cloroplastos, "
+        "absorve a luz e usa essa energia para converter dióxido de carbono e água em "
+        "glucose e oxigénio. Na fase clara (fotoquímica), a luz quebra a água e liberta "
+        "oxigénio; na fase escura (Ciclo de Calvin), o CO₂ é fixado em compostos "
+        "orgânicos. A fotossíntese sustenta quase toda a vida na Terra e manteve a "
+        "atmosfera rica em oxigénio."
+    ),
+    "perguntas": [
+        {
+            "pergunta": "Que pigmento captura a energia da luz na fotossíntese?",
+            "opcoes": ["Clorofila", "Hemoglobina", "Melanina", "Colagénio"],
+            "resposta_correta": 0,
+            "explicacao": "A clorofila, nos cloroplastos, é o pigmento que absorve a energia luminosa.",
+        },
+        {
+            "pergunta": "Quais são os produtos da fotossíntese?",
+            "opcoes": [
+                "Glucose e oxigénio",
+                "Dióxido de carbono e água",
+                "Amido e sais minerais",
+                "Proteínas e ácidos nucleicos",
+            ],
+            "resposta_correta": 0,
+            "explicacao": "O CO₂ e a água (reagentes) são transformados em glucose e O₂ (produtos).",
+        },
+        {
+            "pergunta": "Onde decorre a fotossíntese na célula vegetal?",
+            "opcoes": ["Nos cloroplastos", "Nas mitocôndrias", "No lisossoma", "No núcleo"],
+            "resposta_correta": 0,
+            "explicacao": "O cloroplasto concentra os pigmentos e as enzimas da fotossíntese.",
+        },
+    ],
+    "fill_in_the_blank": [
+        {
+            "frase": "Na fotossíntese, o pigmento [___] absorve a energia da luz.",
+            "palavra_oculta": "clorofila",
+        },
+        {
+            "frase": "A fotossíntese produz glucose e liberta [___].",
+            "palavra_oculta": "oxigénio",
+        },
+        {
+            "frase": "O dióxido de carbono entra pelas folhas através dos [___].",
+            "palavra_oculta": "estomas",
+        },
+    ],
+}
+
+
 def gerar_dados_m1_offline(tema: str, num_opcoes: int) -> dict:
     """Gera recurso M1 sem IA: usa banco local ou template genérico honesto."""
     tema = (tema or "").strip() or "este tema"
@@ -402,6 +461,8 @@ def gerar_dados_m1_offline(tema: str, num_opcoes: int) -> dict:
         base = BANCO_M1_ADN
     elif "sistema" in t or "memória" in t or "memoria" in t or "operativo" in t:
         base = BANCO_M1_SO
+    elif "fotoss" in t or "cloro" in t or "planta" in t or "photosynth" in t:
+        base = BANCO_M1_FOTO
     else:
         # Genérico: não inventa factos; foca método de estudo do tema
         return {
@@ -410,7 +471,7 @@ def gerar_dados_m1_offline(tema: str, num_opcoes: int) -> dict:
                 "gerar conteúdo factual novo com IA. Utilize este template em aula: 1) definir "
                 f"3 conceitos-chave de {tema}; 2) dar um exemplo prático; 3) listar uma dúvida "
                 "frequente dos alunos. Para conteúdo factual automático, use o modo Online ou "
-                "escolha os temas demo 'ADN' ou 'Sistemas Operativos'."
+                "escolha os temas demo 'ADN', 'Fotossíntese' ou 'Sistemas Operativos'."
             ),
             "perguntas": [
                 ajustar_num_opcoes(
@@ -502,6 +563,26 @@ BANCO_M2_ADN = [
 ]
 
 
+BANCO_M2_FOTO = [
+    {
+        "conceito": "Clorofila",
+        "definicao": "Pigmento verde dos cloroplastos que absorve a energia luminosa.",
+    },
+    {
+        "conceito": "Estomas",
+        "definicao": "Poros das folhas por onde entra o dióxido de carbono e sai o oxigénio.",
+    },
+    {
+        "conceito": "Fase clara",
+        "definicao": "Reações dependentes de luz que quebram a água e liberta oxigénio.",
+    },
+    {
+        "conceito": "Ciclo de Calvin",
+        "definicao": "Fase independente de luz em que o CO₂ é fixado em glucose.",
+    },
+]
+
+
 def gerar_dados_m2_offline(tema: str) -> dict:
     tema = (tema or "").strip() or "este tema"
     t = tema.lower()
@@ -509,6 +590,8 @@ def gerar_dados_m2_offline(tema: str) -> dict:
         return {"pares": [dict(p) for p in BANCO_M2_SO]}
     if "adn" in t or "dna" in t or "genét" in t or "genet" in t:
         return {"pares": [dict(p) for p in BANCO_M2_ADN]}
+    if "fotoss" in t or "cloro" in t or "planta" in t or "photosynth" in t:
+        return {"pares": [dict(p) for p in BANCO_M2_FOTO]}
     return {
         "pares": [
             {"conceito": f"Conceito 1 de {tema}", "definicao": f"Definição introdutória de {tema} (exemplo demo 1)."},
@@ -518,6 +601,58 @@ def gerar_dados_m2_offline(tema: str) -> dict:
         ],
         "_demo_generico": True,
     }
+
+
+def exportar_recurso_markdown(tema: str, dados: dict, pares: list | None = None) -> str:
+    """Recurso completo em Markdown: texto, quiz (+chaves), lacunas (+chaves) e pares do jogo."""
+    titulo = str(tema or "este tema").strip() or "este tema"
+    dados = dados if isinstance(dados, dict) else {}
+    linhas = ["# EduGen — Recurso gerado", f"**Tema:** {titulo}", "", "## Texto explicativo", ""]
+    texto = str(dados.get("texto_explicativo", "") or "").strip()
+    linhas += [texto or "—", ""]
+
+    perguntas = dados.get("perguntas")
+    perguntas = perguntas if isinstance(perguntas, list) else []
+    if perguntas:
+        linhas += ["## Quiz — perguntas", ""]
+        for i, p in enumerate(perguntas, start=1):
+            if isinstance(p, dict):
+                opts = [str(o) for o in (p.get("opcoes") or [])]
+                linhas.append(f"**P{i}.** {p.get('pergunta', '—')}")
+                linhas.extend(f"- {chr(97 + j)}) {o}" for j, o in enumerate(opts))
+                linhas.append("")
+        linhas += ["## Quiz — respostas e explicações", ""]
+        for i, p in enumerate(perguntas, start=1):
+            if isinstance(p, dict):
+                opts = [str(o) for o in (p.get("opcoes") or [])]
+                cor = p.get("resposta_correta")
+                cor_i = cor if isinstance(cor, int) and 0 <= cor < len(opts) else -1
+                resp = opts[cor_i] if cor_i >= 0 else "—"
+                expl = str(p.get("explicacao", "") or "").strip()
+                linhas.append(f"- **P{i}:** {resp} — {expl}".rstrip(" —"))
+        linhas.append("")
+
+    lacunas = dados.get("fill_in_the_blank")
+    lacunas = lacunas if isinstance(lacunas, list) else []
+    if lacunas:
+        linhas += ["## Lacunas — exercícios", ""]
+        for i, l in enumerate(lacunas, start=1):
+            if isinstance(l, dict):
+                linhas.append(f"**{i}.** {l.get('frase', '—')}")
+        linhas += ["", "## Lacunas — respostas", ""]
+        for i, l in enumerate(lacunas, start=1):
+            if isinstance(l, dict):
+                linhas.append(f"- **{i}:** {l.get('palavra_oculta', '—')}")
+        linhas.append("")
+
+    if isinstance(pares, list) and pares:
+        linhas += ["## Jogo de associação — pares", ""]
+        for i, par in enumerate(pares, start=1):
+            if isinstance(par, dict):
+                linhas.append(f"{i}. **{par.get('conceito', '—')}** — {par.get('definicao', '')}")
+        linhas.append("")
+
+    return "\n".join(linhas).strip() + "\n"
 
 
 def corrigir_por_keywords(resposta: str, keywords: str) -> dict:
@@ -749,6 +884,9 @@ STRINGS = {
         "ed_l_nomarker": "A frase deve conter o marcador [___].",
         "ed_reset": "Repor base demo",
         "ed_reset_ok": "Base demo reposta.",
+        "ed_export": "Exportar recurso gerado",
+        "ed_export_hint": "Descarrega o recurso em Markdown (texto, quiz com respostas, lacunas e pares do jogo) para arquivar ou converter em PDF. Para impressão direta usa Ctrl+P: sai limpo, sem barra lateral.",
+        "ed_export_btn": "Descarregar .md",
         "model_quota_hint": "A quota diária deste modelo esgotou na tua chave gratuita — escolhe um modelo Flash na barra lateral ou tenta mais tarde.",
         "model_switch": "O modelo '{antigo}' atingiu a quota. Mudei automaticamente para '{novo}' e continuei — podes mudar quando quiseres na barra lateral.",
         "study_title": "Resumo de estudo — como melhorar",
@@ -904,6 +1042,9 @@ STRINGS = {
         "ed_l_nomarker": "The sentence must contain the [___] marker.",
         "ed_reset": "Restore demo base",
         "ed_reset_ok": "Demo base restored.",
+        "ed_export": "Export generated resource",
+        "ed_export_hint": "Downloads the resource as Markdown (text, quiz with answers, gaps and game pairs) to archive or convert to PDF. For direct printing use Ctrl+P: it prints clean, without the sidebar.",
+        "ed_export_btn": "Download .md",
         "model_quota_hint": "This model's daily quota is exhausted on your free key — pick a Flash model in the sidebar or try again later.",
         "model_switch": "Model '{antigo}' hit its quota. I switched automatically to '{novo}' and continued — you can change it anytime in the sidebar.",
         "study_title": "Study summary — how to improve",
@@ -1385,6 +1526,26 @@ with tab1:
                         st.session_state["dados_m1"] = gerar_dados_m1_offline(tema_m1, num_opcoes)
                         limpar_chaves_resposta_m1()
                         st.success(STR["ed_reset_ok"])
+
+    # ---- Exportar recurso (só Professor, com recurso existente) ----
+    if not is_student and isinstance(st.session_state.get("dados_m1"), dict):
+        with st.expander(STR["ed_export"]):
+            st.caption(STR["ed_export_hint"])
+            m2_exp = st.session_state.get("dados_m2")
+            pares_exp = m2_exp.get("pares") if isinstance(m2_exp, dict) else None
+            recurso_md = exportar_recurso_markdown(
+                tema_m1,
+                st.session_state["dados_m1"],
+                pares_exp if isinstance(pares_exp, list) else None,
+            )
+            nome_fich = re.sub(r"[^a-z0-9]+", "-", str(tema_m1 or "recurso").lower()).strip("-")[:40] or "recurso"
+            st.download_button(
+                STR["ed_export_btn"],
+                data=recurso_md,
+                file_name=f"edugen_{nome_fich}.md",
+                mime="text/markdown",
+                key="btn_exportar_m1",
+            )
 
     if "dados_m1" not in st.session_state:
         if is_student:

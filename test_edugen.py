@@ -168,8 +168,13 @@ class TestM1Offline(unittest.TestCase):
             self.assertEqual(len(q["opcoes"]), 2)
 
     def test_generico_menciona_tema(self):
-        d = gerar_dados_m1_offline("Fotossíntese", 4)
-        self.assertIn("Fotossíntese", d["texto_explicativo"])
+        d = gerar_dados_m1_offline("Volcanoes and Dynamic Earth", 4)
+        self.assertIn("Volcanoes and Dynamic Earth", d["texto_explicativo"])
+
+    def test_banco_foto_coberto_pelo_tema(self):
+        d = gerar_dados_m1_offline("A Fotossíntese", 4)
+        self.assertNotIn("_demo_generico", d)
+        self.assertIn("clorofila", d["texto_explicativo"].lower())
 
     def test_banco_global_nao_mutado(self):
         d = gerar_dados_m1_offline("ADN", 4)
@@ -958,6 +963,47 @@ class TestFallbackQuota(unittest.TestCase):
         H["mostrar_aviso_modelo"]()
         self.assertEqual(len(self.st.warnings), 1)
         self.assertIn("troca a->b", self.st.warnings[0])
+
+
+class TestExport(unittest.TestCase):
+    """Exportação do recurso gerado em Markdown."""
+
+    def test_estrutura_completa(self):
+        dados = {
+            "texto_explicativo": "Texto base.",
+            "perguntas": [
+                {"pergunta": "Q1?", "opcoes": ["errada", "certa"], "resposta_correta": 1, "explicacao": "Porque sim."},
+            ],
+            "fill_in_the_blank": [{"frase": "X [___] Y", "palavra_oculta": "z"}],
+        }
+        md = H["exportar_recurso_markdown"]("Tema X", dados, [{"conceito": "C", "definicao": "D"}])
+        self.assertIn("# EduGen — Recurso gerado", md)
+        self.assertIn("## Texto explicativo", md)
+        self.assertIn("Texto base.", md)
+        self.assertIn("**P1.** Q1?", md)
+        self.assertIn("- a) errada", md)
+        self.assertIn("- b) certa", md)
+        self.assertIn("## Quiz — respostas e explicações", md)
+        self.assertIn("**P1:** certa — Porque sim.", md)
+        self.assertIn("## Lacunas — exercícios", md)
+        self.assertIn("X [___] Y", md)
+        self.assertIn("**1:** z", md)
+        self.assertIn("## Jogo de associação — pares", md)
+        self.assertIn("1. **C** — D", md)
+
+    def test_dados_vazios_nao_explodem(self):
+        md = H["exportar_recurso_markdown"]("", {}, None)
+        self.assertIn("# EduGen — Recurso gerado", md)
+        self.assertIn("**Tema:** este tema", md)
+
+    def test_bancos_fotossintese(self):
+        m1 = H["gerar_dados_m1_offline"]("Fotossíntese", 4)
+        self.assertIn("clorofila", str(m1.get("texto_explicativo", "")).lower())
+        self.assertGreaterEqual(len(m1.get("perguntas") or []), 2)
+        self.assertGreaterEqual(len(m1.get("fill_in_the_blank") or []), 2)
+        self.assertNotIn("_demo_generico", m1)
+        m2 = H["gerar_dados_m2_offline"]("fotosintese")
+        self.assertEqual(len(m2.get("pares") or []), 4)
 
 
 if __name__ == "__main__":

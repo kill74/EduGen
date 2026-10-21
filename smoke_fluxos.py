@@ -1,4 +1,4 @@
-"""Smoke test end-to-end da app real (Streamlit AppTest) — 11 fluxos.
+"""Smoke test end-to-end da app real (Streamlit AppTest) — 12 fluxos.
 
 Corre com:  python smoke_fluxos.py
 Requer as dependências do requirements.txt instaladas.
@@ -122,5 +122,10 @@ if len(opcoes) > 1:
     sem_excecao(at3, "11")
     assert at3.selectbox(key="modelo").value == opcoes[1]
     print("11. escolha manual de modelo OK")
+
+# 12. exportar recurso (Professor, offline): botão presente e exportação Markdown
+d = next((x for x in at.download_button if x.key == "btn_exportar_m1"), None)
+assert d is not None, "download de exportação em falta"
+print("12. exportar recurso (.md) OK")
 
 print("ALL APPTEST PASSED")
