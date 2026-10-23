@@ -1,3 +1,7 @@
-streamlit>=1.32
+# Piso alinhado com o que a UI realmente usa: theme.linkColor/codeTextColor (1.51),
+# fontes hospedadas por URL em theme.font (1.50) e headingFontSizes/Weights +
+# chartCategoricalColors (1.47). Em versões mais antigas a app corre, mas a
+# identidade editorial degrada em silêncio.
+streamlit>=1.51
 google-genai>=1.0
 Pillow>=10.0

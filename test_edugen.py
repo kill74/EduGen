@@ -530,6 +530,21 @@ class TestUX(unittest.TestCase):
         self.assertIn('key="fix_m1"', src)
         self.assertIn('key="fix_m2"', src)
 
+    def test_dados_corrompidos_so_param_a_propria_aba(self):
+        import re as _re
+
+        src = SRC_PATH.read_text(encoding="utf-8")
+        # A recuperação de dados inválidos é local à aba: um st.stop() a meio
+        # das abas matava os módulos restantes até o usuário reparar os dados.
+        # O único st.stop() admitido é a porta "modo online sem chave".
+        self.assertEqual(src.count("st.stop()"), 1)
+        self.assertRegex(
+            src, r'else:[ \t]*\r?\n[ \t]*perguntas = dados\.get\("perguntas"'
+        )
+        self.assertRegex(
+            src, r'else:[ \t]*\r?\n[ \t]*pares = \[p for p in dados_m2\.get\("pares"'
+        )
+
     def test_sem_strings_hardcoded(self):
         src = SRC_PATH.read_text(encoding="utf-8")
         self.assertNotIn("A resposta do modelo não é um objeto JSON válido.", src.split("STRINGS")[0])
@@ -1004,6 +1019,22 @@ class TestExport(unittest.TestCase):
         self.assertNotIn("_demo_generico", m1)
         m2 = H["gerar_dados_m2_offline"]("fotosintese")
         self.assertEqual(len(m2.get("pares") or []), 4)
+
+
+class TestDependencias(unittest.TestCase):
+    """piso de dependências alinhado com o que a UI realmente usa."""
+
+    def test_floor_do_streamlit(self):
+        import re as _re
+
+        req = (SRC_PATH.parent / "requirements.txt").read_text(encoding="utf-8")
+        match = _re.search(r"streamlit>=([0-9]+(?:\.[0-9]+)*)", req)
+        self.assertIsNotNone(match, "requirements.txt deve fixar um piso de streamlit")
+        major, minor = (int(x) for x in match.group(1).split(".")[:2])
+        # theme.linkColor/codeTextColor (1.51), fontes por URL em theme.font
+        # (1.50) e headingFontSizes/Weights (1.47): um piso baixo degradava a
+        # identidade visual em silêncio.
+        self.assertGreaterEqual((major, minor), (1, 51))
 
 
 if __name__ == "__main__":

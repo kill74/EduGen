@@ -1557,120 +1557,120 @@ with tab1:
             if st.button(STR["fix_data"], icon=":material/delete:", key="fix_m1"):
                 st.session_state.pop("dados_m1", None)
                 st.rerun()
-            st.stop()
-        perguntas = dados.get("perguntas", []) or []
-        lacunas = dados.get("fill_in_the_blank", []) or []
-        if not isinstance(perguntas, list):
-            perguntas = []
-        if not isinstance(lacunas, list):
-            lacunas = []
+        else:
+            perguntas = dados.get("perguntas", []) or []
+            lacunas = dados.get("fill_in_the_blank", []) or []
+            if not isinstance(perguntas, list):
+                perguntas = []
+            if not isinstance(lacunas, list):
+                lacunas = []
 
-        st.subheader(STR["texto_sub"])
-        texto_m1 = dados.get("texto_explicativo") or ""
-        if not isinstance(texto_m1, str):
-            texto_m1 = str(texto_m1)
-        st.info(texto_m1 or STR["no_text"])
+            st.subheader(STR["texto_sub"])
+            texto_m1 = dados.get("texto_explicativo") or ""
+            if not isinstance(texto_m1, str):
+                texto_m1 = str(texto_m1)
+            st.info(texto_m1 or STR["no_text"])
 
-        st.subheader(STR["quiz_sub"])
-        respostas_aluno_m1 = {}
-        perguntas_validas = []
-        for idx, q in enumerate(perguntas):
-            if not pergunta_valida(q):
-                st.warning(f"P{idx + 1} {STR['bad_struct']}")
-                continue
-            enunciado = q.get("pergunta", f"Pergunta {idx + 1}")
-            if not isinstance(enunciado, str):
-                enunciado = str(enunciado)
-            opcoes = q["opcoes"]
-            perguntas_validas.append((idx, q))
-            st.markdown(f"**P{idx + 1}: {enunciado}**")
-            respostas_aluno_m1[idx] = st.radio(
-                f"{STR['escolha_label']}{idx + 1}:",
-                opcoes,
-                index=None,
-                key=f"q_{idx}",
-            )
-
-        st.subheader(STR["lac_sub"])
-        respostas_lacunas = {}
-        for idx_l, lacuna in enumerate(lacunas):
-            if not isinstance(lacuna, dict):
-                st.warning(f"{STR['exercicio']}{idx_l + 1} {STR['bad_struct']}")
-                continue
-            frase = lacuna.get("frase", STR["frase_missing"])
-            if "palavra_oculta" not in lacuna:
-                st.warning(f"{STR['exercicio']}{idx_l + 1} {STR['lac_no_hidden']}")
-                continue
-            st.write(f"**{STR['exercicio']}{idx_l + 1}:** {frase}")
-            respostas_lacunas[idx_l] = st.text_input(f"{STR['lacuna_label']}{idx_l + 1}:", key=f"lac_{idx_l}")
-
-        if st.button(STR["btn_submit_m1"], icon=":material/check_circle:", key="btn_validar_m1", type="primary"):
-            st.divider()
-            st.subheader(STR["result_sub"])
-
-            erros_estudo = []
-            acertos_quiz = 0
-            for idx, q in perguntas_validas:
-                resp_correta_texto = q["opcoes"][q["resposta_correta"]]
-                escolha = respostas_aluno_m1.get(idx)
-                if escolha is None:
-                    st.error(f"P{idx + 1}: {STR['no_answer']}'{resp_correta_texto}'.")
-                    erros_estudo.append(
-                        {
-                            "etiqueta": STR["study_q"].format(n=idx + 1),
-                            "certa": resp_correta_texto,
-                            "explicacao": q.get("explicacao", ""),
-                        }
-                    )
-                elif escolha == resp_correta_texto:
-                    acertos_quiz += 1
-                    st.success(f"P{idx + 1}: {STR['correct']}{q.get('explicacao', '')}")
-                else:
-                    st.error(
-                        f"P{idx + 1}: {STR['incorrect']}'{resp_correta_texto}'{STR['explic_label']}{q.get('explicacao', '')}"
-                    )
-                    erros_estudo.append(
-                        {
-                            "etiqueta": STR["study_q"].format(n=idx + 1),
-                            "certa": resp_correta_texto,
-                            "explicacao": q.get("explicacao", ""),
-                        }
-                    )
-
-            acertos_lacunas = 0
-            lacunas_validas = 0
-            for idx_l, lacuna in enumerate(lacunas):
-                if not isinstance(lacuna, dict) or "palavra_oculta" not in lacuna:
+            st.subheader(STR["quiz_sub"])
+            respostas_aluno_m1 = {}
+            perguntas_validas = []
+            for idx, q in enumerate(perguntas):
+                if not pergunta_valida(q):
+                    st.warning(f"P{idx + 1} {STR['bad_struct']}")
                     continue
-                lacunas_validas += 1
-                palavra_user = normalizar(respostas_lacunas.get(idx_l, ""))
-                palavra_certa = normalizar(lacuna["palavra_oculta"])
-                if palavra_user and palavra_user == palavra_certa:
-                    acertos_lacunas += 1
-                    st.success(f"{STR['exercicio']}{idx_l + 1}: {STR['lac_ok']}('{lacuna['palavra_oculta']}')")
-                else:
-                    st.error(
-                        f"{STR['exercicio']}{idx_l + 1}: {STR['lac_bad']}'{respostas_lacunas.get(idx_l, '')}'{STR['lac_expected']}'{lacuna['palavra_oculta']}'."
-                    )
-                    erros_estudo.append(
-                        {
-                            "etiqueta": STR["study_lac"].format(n=idx_l + 1),
-                            "certa": lacuna["palavra_oculta"],
-                            "explicacao": "",
-                        }
-                    )
+                enunciado = q.get("pergunta", f"Pergunta {idx + 1}")
+                if not isinstance(enunciado, str):
+                    enunciado = str(enunciado)
+                opcoes = q["opcoes"]
+                perguntas_validas.append((idx, q))
+                st.markdown(f"**P{idx + 1}: {enunciado}**")
+                respostas_aluno_m1[idx] = st.radio(
+                    f"{STR['escolha_label']}{idx + 1}:",
+                    opcoes,
+                    index=None,
+                    key=f"q_{idx}",
+                )
 
-            total = len(perguntas_validas) + lacunas_validas
-            if total == 0:
-                st.warning(STR["no_valid"])
-            else:
-                st.metric(STR["grade_quiz"], f"{((acertos_quiz + acertos_lacunas) / total) * 100:.0f}%")
-                resumo = construir_resumo_estudo(erros_estudo, total, STR["study_where_m1"])
-                if resumo:
-                    with st.expander(STR["study_title"], expanded=True, icon=":material/school:"):
-                        st.markdown(resumo)
-                if (acertos_quiz + acertos_lacunas) == total:
-                    celebrar()
+            st.subheader(STR["lac_sub"])
+            respostas_lacunas = {}
+            for idx_l, lacuna in enumerate(lacunas):
+                if not isinstance(lacuna, dict):
+                    st.warning(f"{STR['exercicio']}{idx_l + 1} {STR['bad_struct']}")
+                    continue
+                frase = lacuna.get("frase", STR["frase_missing"])
+                if "palavra_oculta" not in lacuna:
+                    st.warning(f"{STR['exercicio']}{idx_l + 1} {STR['lac_no_hidden']}")
+                    continue
+                st.write(f"**{STR['exercicio']}{idx_l + 1}:** {frase}")
+                respostas_lacunas[idx_l] = st.text_input(f"{STR['lacuna_label']}{idx_l + 1}:", key=f"lac_{idx_l}")
+
+            if st.button(STR["btn_submit_m1"], icon=":material/check_circle:", key="btn_validar_m1", type="primary"):
+                st.divider()
+                st.subheader(STR["result_sub"])
+
+                erros_estudo = []
+                acertos_quiz = 0
+                for idx, q in perguntas_validas:
+                    resp_correta_texto = q["opcoes"][q["resposta_correta"]]
+                    escolha = respostas_aluno_m1.get(idx)
+                    if escolha is None:
+                        st.error(f"P{idx + 1}: {STR['no_answer']}'{resp_correta_texto}'.")
+                        erros_estudo.append(
+                            {
+                                "etiqueta": STR["study_q"].format(n=idx + 1),
+                                "certa": resp_correta_texto,
+                                "explicacao": q.get("explicacao", ""),
+                            }
+                        )
+                    elif escolha == resp_correta_texto:
+                        acertos_quiz += 1
+                        st.success(f"P{idx + 1}: {STR['correct']}{q.get('explicacao', '')}")
+                    else:
+                        st.error(
+                            f"P{idx + 1}: {STR['incorrect']}'{resp_correta_texto}'{STR['explic_label']}{q.get('explicacao', '')}"
+                        )
+                        erros_estudo.append(
+                            {
+                                "etiqueta": STR["study_q"].format(n=idx + 1),
+                                "certa": resp_correta_texto,
+                                "explicacao": q.get("explicacao", ""),
+                            }
+                        )
+
+                acertos_lacunas = 0
+                lacunas_validas = 0
+                for idx_l, lacuna in enumerate(lacunas):
+                    if not isinstance(lacuna, dict) or "palavra_oculta" not in lacuna:
+                        continue
+                    lacunas_validas += 1
+                    palavra_user = normalizar(respostas_lacunas.get(idx_l, ""))
+                    palavra_certa = normalizar(lacuna["palavra_oculta"])
+                    if palavra_user and palavra_user == palavra_certa:
+                        acertos_lacunas += 1
+                        st.success(f"{STR['exercicio']}{idx_l + 1}: {STR['lac_ok']}('{lacuna['palavra_oculta']}')")
+                    else:
+                        st.error(
+                            f"{STR['exercicio']}{idx_l + 1}: {STR['lac_bad']}'{respostas_lacunas.get(idx_l, '')}'{STR['lac_expected']}'{lacuna['palavra_oculta']}'."
+                        )
+                        erros_estudo.append(
+                            {
+                                "etiqueta": STR["study_lac"].format(n=idx_l + 1),
+                                "certa": lacuna["palavra_oculta"],
+                                "explicacao": "",
+                            }
+                        )
+
+                total = len(perguntas_validas) + lacunas_validas
+                if total == 0:
+                    st.warning(STR["no_valid"])
+                else:
+                    st.metric(STR["grade_quiz"], f"{((acertos_quiz + acertos_lacunas) / total) * 100:.0f}%")
+                    resumo = construir_resumo_estudo(erros_estudo, total, STR["study_where_m1"])
+                    if resumo:
+                        with st.expander(STR["study_title"], expanded=True, icon=":material/school:"):
+                            st.markdown(resumo)
+                    if (acertos_quiz + acertos_lacunas) == total:
+                        celebrar()
 
 # ----------------------------------------------------------
 # MÓDULO 2
@@ -1723,70 +1723,70 @@ with tab2:
             if st.button(STR["fix_data"], icon=":material/delete:", key="fix_m2"):
                 st.session_state.pop("dados_m2", None)
                 st.rerun()
-            st.stop()
-        pares = [p for p in dados_m2.get("pares", []) if par_valido(p)]
-        if not pares:
-            st.warning(STR["no_pairs"])
         else:
-            st.subheader(STR["assoc_sub"])
-            conceitos = [p["conceito"] for p in pares]
-            definicoes = [p["definicao"] for p in pares]
-            # Baralha uma única vez e guarda em session_state (evita re-baralhar a cada rerun).
-            # Re-baralha se o conteúdo mudou, não apenas o tamanho.
-            guardadas = st.session_state.get("def_baralhadas")
-            if not isinstance(guardadas, list) or sorted(map(str, guardadas)) != sorted(map(str, definicoes)):
-                st.session_state["def_baralhadas"] = random.sample(definicoes, len(definicoes))
-            definicoes_baralhadas = st.session_state["def_baralhadas"]
+            pares = [p for p in dados_m2.get("pares", []) if par_valido(p)]
+            if not pares:
+                st.warning(STR["no_pairs"])
+            else:
+                st.subheader(STR["assoc_sub"])
+                conceitos = [p["conceito"] for p in pares]
+                definicoes = [p["definicao"] for p in pares]
+                # Baralha uma única vez e guarda em session_state (evita re-baralhar a cada rerun).
+                # Re-baralha se o conteúdo mudou, não apenas o tamanho.
+                guardadas = st.session_state.get("def_baralhadas")
+                if not isinstance(guardadas, list) or sorted(map(str, guardadas)) != sorted(map(str, definicoes)):
+                    st.session_state["def_baralhadas"] = random.sample(definicoes, len(definicoes))
+                definicoes_baralhadas = st.session_state["def_baralhadas"]
 
-            respostas_assoc = {}
-            col_c, col_d = st.columns(2)
-            with col_c:
-                st.markdown(STR["concepts_h"])
-                for idx, c in enumerate(conceitos):
-                    st.info(f"**{idx + 1}. {c}**")
-            with col_d:
-                st.markdown(STR["defs_h"])
-                for idx, c in enumerate(conceitos):
-                    # Indexado por posição (não pelo conceito) para suportar conceitos duplicados
-                    respostas_assoc[idx] = st.selectbox(
-                        f"{STR['def_for']}'{c}':",
-                        options=[STR["choose"]] + definicoes_baralhadas,
-                        key=f"assoc_{idx}",
-                    )
+                respostas_assoc = {}
+                col_c, col_d = st.columns(2)
+                with col_c:
+                    st.markdown(STR["concepts_h"])
+                    for idx, c in enumerate(conceitos):
+                        st.info(f"**{idx + 1}. {c}**")
+                with col_d:
+                    st.markdown(STR["defs_h"])
+                    for idx, c in enumerate(conceitos):
+                        # Indexado por posição (não pelo conceito) para suportar conceitos duplicados
+                        respostas_assoc[idx] = st.selectbox(
+                            f"{STR['def_for']}'{c}':",
+                            options=[STR["choose"]] + definicoes_baralhadas,
+                            key=f"assoc_{idx}",
+                        )
 
-            if st.button(STR["btn_check_m2"], icon=":material/check_circle:", key="btn_valida_m2", type="primary"):
-                acertos = 0
-                erros_estudo = []
-                for idx, p in enumerate(pares):
-                    d_user = respostas_assoc.get(idx, STR["choose"])
-                    if d_user == STR["choose"]:
-                        st.warning(f"{STR['assoc_no_answer']}'{p['conceito']}'.")
-                        erros_estudo.append(
-                            {
-                                "etiqueta": f"{STR['study_par'].format(n=idx + 1)}: {p['conceito']}",
-                                "certa": p["definicao"],
-                                "explicacao": "",
-                            }
-                        )
-                    elif d_user == p["definicao"]:
-                        acertos += 1
-                        st.success(f"Correto: '{p['conceito']}' {STR['assoc_good']}")
-                    else:
-                        st.error(f"{STR['assoc_bad']}'{p['conceito']}'. {STR['assoc_hint']}")
-                        erros_estudo.append(
-                            {
-                                "etiqueta": f"{STR['study_par'].format(n=idx + 1)}: {p['conceito']}",
-                                "certa": p["definicao"],
-                                "explicacao": "",
-                            }
-                        )
-                st.metric(STR["assoc_result"], f"{acertos}/{len(pares)} {STR['assoc_pairs_ok']}")
-                resumo = construir_resumo_estudo(erros_estudo, len(pares), STR["study_where_m2"])
-                if resumo:
-                    with st.expander(STR["study_title"], expanded=True, icon=":material/school:"):
-                        st.markdown(resumo)
-                if acertos == len(pares):
-                    celebrar()
+                if st.button(STR["btn_check_m2"], icon=":material/check_circle:", key="btn_valida_m2", type="primary"):
+                    acertos = 0
+                    erros_estudo = []
+                    for idx, p in enumerate(pares):
+                        d_user = respostas_assoc.get(idx, STR["choose"])
+                        if d_user == STR["choose"]:
+                            st.warning(f"{STR['assoc_no_answer']}'{p['conceito']}'.")
+                            erros_estudo.append(
+                                {
+                                    "etiqueta": f"{STR['study_par'].format(n=idx + 1)}: {p['conceito']}",
+                                    "certa": p["definicao"],
+                                    "explicacao": "",
+                                }
+                            )
+                        elif d_user == p["definicao"]:
+                            acertos += 1
+                            st.success(f"Correto: '{p['conceito']}' {STR['assoc_good']}")
+                        else:
+                            st.error(f"{STR['assoc_bad']}'{p['conceito']}'. {STR['assoc_hint']}")
+                            erros_estudo.append(
+                                {
+                                    "etiqueta": f"{STR['study_par'].format(n=idx + 1)}: {p['conceito']}",
+                                    "certa": p["definicao"],
+                                    "explicacao": "",
+                                }
+                            )
+                    st.metric(STR["assoc_result"], f"{acertos}/{len(pares)} {STR['assoc_pairs_ok']}")
+                    resumo = construir_resumo_estudo(erros_estudo, len(pares), STR["study_where_m2"])
+                    if resumo:
+                        with st.expander(STR["study_title"], expanded=True, icon=":material/school:"):
+                            st.markdown(resumo)
+                    if acertos == len(pares):
+                        celebrar()
 
 # ----------------------------------------------------------
 # MÓDULO 3
