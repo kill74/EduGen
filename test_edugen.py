@@ -775,14 +775,12 @@ class TestUIClean(unittest.TestCase):
         cls.src = SRC_PATH.read_text(encoding="utf-8")
 
     def test_config_unico_e_clean(self):
-        self.assertIn('base = "light"', self.cfg)
+        self.assertIn('base = "dark"', self.cfg)
         self.assertNotIn("[theme.dark]", self.cfg)
-        self.assertIn("Fraunces", self.cfg)
-        self.assertIn("Manrope", self.cfg)
-        self.assertIn('primaryColor = "#5B21B6"', self.cfg)
+        self.assertIn("JetBrains Mono", self.cfg)
+        self.assertIn('primaryColor = "#4ADE80"', self.cfg)
         self.assertIn("[theme.sidebar]", self.cfg)
         self.assertNotIn("VT323", self.cfg)
-        self.assertNotIn('baseRadius = "0px"', self.cfg)
 
     def test_sem_cromo_retro(self):
         for morto in (
