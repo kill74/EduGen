@@ -39,9 +39,13 @@ except ImportError:
 # ==========================================================
 # CONFIGURAÇÃO DA PÁGINA E ESTILIZAÇÃO DSI (UX/UI)
 # ==========================================================
-# Marca da app (ícone da aba + logótipo na sidebar), resolvida a partir do ficheiro
+# Marca da app (ícone da aba + logótipo na sidebar), resolvida a partir do ficheiro.
+# O entregável é deliberadamente um ficheiro único: se o PNG dos assets faltar
+# (ex. cópia do .py), degrada para um ícone material em vez de crashar o arranque.
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 MARCA_APP = os.path.join(ASSETS_DIR, "edugen_mark.png")
+MARCA_DISPONIVEL = os.path.exists(MARCA_APP)
+MARCA_FALLBACK = ":material/school:"
 
 CSS_UI = """
 <style>
@@ -216,11 +220,12 @@ CSS_UI = """
 
 st.set_page_config(
     page_title="EduGen - Sistema Interativo de IA Generativa",
-    page_icon=MARCA_APP,
+    page_icon=MARCA_APP if MARCA_DISPONIVEL else MARCA_FALLBACK,
     layout="wide",
     initial_sidebar_state="expanded",
 )
-st.logo(MARCA_APP, size="medium")
+if MARCA_DISPONIVEL:
+    st.logo(MARCA_APP, size="medium")
 st.html(CSS_UI)
 
 
@@ -382,7 +387,9 @@ def ajustar_num_opcoes(pergunta: dict, num_opcoes: int) -> dict:
     ):
         return pergunta
     correta = opcoes[idx_correta]
-    erradas = [o for i, o in enumerate(opcoes) if i != idx_correta and o != correta]
+    # Duplicadas nas erradas (dados corruptos/da IA) tornariam a pergunta inválida
+    # no render (opções têm de ser únicas) — unifica preservando a ordem.
+    erradas = list(dict.fromkeys(o for i, o in enumerate(opcoes) if i != idx_correta and o != correta))
     if num_opcoes <= 1:
         num_opcoes = 2
     # Mantém a correta + (num_opcoes-1) erradas; completa se faltarem garantindo opções únicas
@@ -751,6 +758,7 @@ def gerar_dados_m1_offline(tema: str, num_opcoes: int, lang: str = "pt") -> dict
                     },
                 ],
                 "_demo_generico": True,
+                "_tema": tema,
             }
         return {
             "texto_explicativo": (
@@ -801,12 +809,14 @@ def gerar_dados_m1_offline(tema: str, num_opcoes: int, lang: str = "pt") -> dict
                 },
             ],
             "_demo_generico": True,
+            "_tema": tema,
         }
     return {
         "texto_explicativo": base["texto_explicativo"],
         "perguntas": [ajustar_num_opcoes(p, num_opcoes) for p in base["perguntas"]],
         # Cópias para nunca mutar acidentalmente os bancos globais
         "fill_in_the_blank": [dict(lac) for lac in base["fill_in_the_blank"]],
+        "_tema": tema,
     }
 
 
@@ -941,11 +951,11 @@ def gerar_dados_m2_offline(tema: str, lang: str = "pt") -> dict:
         or "operating" in t
         or "memory" in t
     ):
-        return {"pares": [dict(p) for p in (BANCO_M2_SO_EN if en else BANCO_M2_SO)]}
+        return {"pares": [dict(p) for p in (BANCO_M2_SO_EN if en else BANCO_M2_SO)], "_tema": tema}
     if "adn" in t or "dna" in t or "genét" in t or "genet" in t:
-        return {"pares": [dict(p) for p in (BANCO_M2_ADN_EN if en else BANCO_M2_ADN)]}
+        return {"pares": [dict(p) for p in (BANCO_M2_ADN_EN if en else BANCO_M2_ADN)], "_tema": tema}
     if "fotoss" in t or "cloro" in t or "planta" in t or "photosynth" in t:
-        return {"pares": [dict(p) for p in (BANCO_M2_FOTO_EN if en else BANCO_M2_FOTO)]}
+        return {"pares": [dict(p) for p in (BANCO_M2_FOTO_EN if en else BANCO_M2_FOTO)], "_tema": tema}
     if en:
         return {
             "pares": [
@@ -955,6 +965,7 @@ def gerar_dados_m2_offline(tema: str, lang: str = "pt") -> dict:
                 {"conceito": f"Concept 4 of {tema}", "definicao": f"Practical application of {tema} (demo example 4)."},
             ],
             "_demo_generico": True,
+            "_tema": tema,
         }
     return {
         "pares": [
@@ -964,6 +975,7 @@ def gerar_dados_m2_offline(tema: str, lang: str = "pt") -> dict:
             {"conceito": f"Conceito 4 de {tema}", "definicao": f"Aplicação prática de {tema} (exemplo demo 4)."},
         ],
         "_demo_generico": True,
+        "_tema": tema,
     }
 
 
@@ -1033,14 +1045,37 @@ def _cp1252(texto):
 
     Os bancos e as respostas da IA usam carateres que faltam no cp1252
     (subscritos tipo CO₂, setas ↔/→, comparadores ≥/≤): substituí-los de forma
-    determinística em vez de crashar. Carateres desconhecidos tornam-se '?'
-    (o traço — existe no cp1252, por isso passa intacto).
+    determinística em vez de crashar. Os restantes sem cp1252 tentam a
+    transliteração NFKD (o acento cai: 'ř'→'r'); o que não tiver equivalente
+    torna-se '?' (o traço — existe no cp1252, por isso passa intacto).
     """
     if not isinstance(texto, str):
         return ""
     for original, substituto in _SUBSTITUICOS_PDF.items():
         texto = texto.replace(original, substituto)
-    return texto.encode("cp1252", errors="replace").decode("cp1252")
+    if texto.isascii():  # fast path: ASCII é sempre cp1252
+        return texto
+    import unicodedata
+
+    saida = []
+    for ch in texto:
+        try:
+            ch.encode("cp1252")
+            saida.append(ch)
+            continue
+        except UnicodeEncodeError:
+            pass
+        translit = unicodedata.normalize("NFKD", ch)
+        translit = "".join(c for c in translit if not unicodedata.combining(c))
+        if translit and translit != ch:
+            try:
+                translit.encode("cp1252")
+                saida.append(translit)
+                continue
+            except UnicodeEncodeError:
+                pass
+        saida.append("?")
+    return "".join(saida)
 
 
 def exportar_recurso_pdf(tema, dados, pares=None):
@@ -1152,6 +1187,19 @@ def dados_repetir_m2(falha_pares, total_original):
         "_recuperacao": True,
         "_total_original": total_original,
     }
+
+
+def tema_de_recurso(dados, tema_atual) -> str:
+    """Tema efetivo para exportação (.md/.pdf) e para o histórico da sessão.
+
+    O recurso guarda o tema do momento da geração ('_tema'); esse vence o texto
+    atual da sidebar, que o utilizador pode ter alterado depois de gerar. Sem
+    tema guardado (dados antigos/da IA), cai no valor atual ou em 'este tema'.
+    """
+    guardado = dados.get("_tema") if isinstance(dados, dict) else None
+    if isinstance(guardado, str) and guardado.strip():
+        return guardado
+    return str(tema_atual or "").strip() or "este tema"
 
 
 def construir_hero(titulo: str, subtitulo: str, chip: str, estado: str = "on") -> str:
@@ -1312,6 +1360,7 @@ STRINGS = {
         "btn_correct_off": "Corrigir sem IA (palavras-chave)",
         "ask_question_first": "Defina primeiro a pergunta.",
         "ask_kw_first": "Defina as palavras-chave esperadas antes de corrigir.",
+        "ask_kw_student": "As palavras-chave desta pergunta não foram definidas — peça ao professor para as configurar (papel Professor).",
         "ask_answer_first": "Introduza a resposta do aluno antes de submeter.",
         "report_off": ":material/fact_check: Relatório da Avaliação (Offline)",
         "state_good": "ESTADO: RESPOSTA CORRETA",
@@ -1484,6 +1533,7 @@ STRINGS = {
         "btn_correct_off": "Check without AI (keywords)",
         "ask_question_first": "Define the question first.",
         "ask_kw_first": "Define the expected keywords before checking.",
+        "ask_kw_student": "The keywords for this question were not set — ask the teacher to configure them (Teacher role).",
         "ask_answer_first": "Enter the student answer before submitting.",
         "report_off": ":material/fact_check: Assessment Report (Offline)",
         "state_good": "STATUS: CORRECT ANSWER",
@@ -1964,7 +2014,7 @@ with tab1:
                     st.success(STR["demo_generic_ok"])
                 else:
                     st.success(STR["demo_bank_ok"])
-                registar_historico("m1", tema_m1, {"m1": dados_m1, "m2": st.session_state.get("dados_m2")})
+                registar_historico("m1", tema_de_recurso(dados_m1, tema_m1), {"m1": dados_m1, "m2": st.session_state.get("dados_m2")})
             else:
                 nivel_txt = STR[f"bloom_{nivel_bloom}"]
                 prompt_m1 = f"""
@@ -2000,8 +2050,9 @@ with tab1:
                     dados_m1 = extrair_json_seguro(texto)
                     if not isinstance(dados_m1, dict):
                         raise ValueError(STR["bad_json"])
+                    dados_m1["_tema"] = str(tema_m1 or "").strip() or "este tema"
                     st.session_state["dados_m1"] = dados_m1
-                    registar_historico("m1", tema_m1, {"m1": dados_m1, "m2": st.session_state.get("dados_m2")})
+                    registar_historico("m1", tema_de_recurso(dados_m1, tema_m1), {"m1": dados_m1, "m2": st.session_state.get("dados_m2")})
                     st.success(STR["gen_ok"])
                 except Exception as e:
                     st.error(f"{STR['gen_err']}{e}")
@@ -2036,7 +2087,12 @@ with tab1:
                     eexpl = st.text_input(STR["ed_q_expl"], key="ed_expl")
                     if st.button(STR["ed_q_add"], icon=":material/add:", key="ed_q_add"):
                         opts = [o.strip() for o in eopts.splitlines() if o.strip()]
-                        if not eq.strip() or len(opts) < 2 or len(set(opts)) != len(opts) or not (1 <= int(ecorr) <= len(opts)):
+                        # Duplicadas exatas OU apenas por caixa/acento ("Frames"/"frames")
+                        # tornariam o radio ambíguo — rejeita ambas.
+                        unicas = len(set(opts)) == len(opts) and len(
+                            {normalizar(o, remover_acentos=True) for o in opts}
+                        ) == len(opts)
+                        if not eq.strip() or len(opts) < 2 or not unicas or not (1 <= int(ecorr) <= len(opts)):
                             st.error(STR["ed_q_err"])
                         else:
                             if not isinstance(d_ed.get("perguntas"), list):
@@ -2050,6 +2106,9 @@ with tab1:
                                 }
                             )
                             limpar_chaves_resposta_m1()
+                            # Mudar o recurso invalida a submissão anterior: sem o pop,
+                            # os resultados desatualizados reapareciam de imediato.
+                            st.session_state.pop("m1_submetido", None)
                             st.success(STR["ed_q_ok"])
                             st.rerun()
 
@@ -2066,6 +2125,7 @@ with tab1:
                                 d_ed["fill_in_the_blank"] = []
                             d_ed["fill_in_the_blank"].append({"frase": ef.strip(), "palavra_oculta": ew.strip()})
                             limpar_chaves_resposta_m1()
+                            st.session_state.pop("m1_submetido", None)
                             st.success(STR["ed_l_ok"])
                             st.rerun()
 
@@ -2074,6 +2134,7 @@ with tab1:
                         st.session_state.pop("ed_texto", None)
                         st.session_state.pop("dados_m1_recuperacao", None)
                         limpar_chaves_resposta_m1()
+                        st.session_state.pop("m1_submetido", None)
                         st.success(STR["ed_reset_ok"])
                         st.rerun()
 
@@ -2081,14 +2142,16 @@ with tab1:
     if not is_student and isinstance(st.session_state.get("dados_m1"), dict):
         with st.expander(STR["ed_export"]):
             st.caption(STR["ed_export_hint"])
+            dados_exp = st.session_state["dados_m1"]
+            tema_exp = tema_de_recurso(dados_exp, tema_m1)
             m2_exp = st.session_state.get("dados_m2")
             pares_exp = m2_exp.get("pares") if isinstance(m2_exp, dict) else None
             recurso_md = exportar_recurso_markdown(
-                tema_m1,
-                st.session_state["dados_m1"],
+                tema_exp,
+                dados_exp,
                 pares_exp if isinstance(pares_exp, list) else None,
             )
-            nome_fich = re.sub(r"[^a-z0-9]+", "-", str(tema_m1 or "recurso").lower()).strip("-")[:40] or "recurso"
+            nome_fich = re.sub(r"[^a-z0-9]+", "-", str(tema_exp or "recurso").lower()).strip("-")[:40] or "recurso"
             st.download_button(
                 STR["ed_export_btn"],
                 data=recurso_md,
@@ -2099,8 +2162,8 @@ with tab1:
             if PDF_LIB_DISPONIVEL:
                 try:
                     pdf_bytes = exportar_recurso_pdf(
-                        tema_m1,
-                        st.session_state["dados_m1"],
+                        tema_exp,
+                        dados_exp,
                         pares_exp if isinstance(pares_exp, list) else None,
                     )
                 except Exception:
@@ -2289,7 +2352,11 @@ with tab2:
             if offline:
                 st.session_state["dados_m2"] = gerar_dados_m2_offline(tema_m2, lang=LANG)
                 st.success(STR["jogo_demo_ok"])
-                registar_historico("m2", tema_m2, {"m1": st.session_state.get("dados_m1"), "m2": st.session_state["dados_m2"]})
+                registar_historico(
+                    "m2",
+                    tema_de_recurso(st.session_state["dados_m2"], tema_m2),
+                    {"m1": st.session_state.get("dados_m1"), "m2": st.session_state["dados_m2"]},
+                )
             else:
                 prompt_m2 = f"""
                 {INSTR}
@@ -2308,8 +2375,9 @@ with tab2:
                     dados_m2 = extrair_json_seguro(texto)
                     if not isinstance(dados_m2, dict):
                         raise ValueError(STR["bad_json"])
+                    dados_m2["_tema"] = str(tema_m2 or "").strip() or "este tema"
                     st.session_state["dados_m2"] = dados_m2
-                    registar_historico("m2", tema_m2, {"m1": st.session_state.get("dados_m1"), "m2": dados_m2})
+                    registar_historico("m2", tema_de_recurso(dados_m2, tema_m2), {"m1": st.session_state.get("dados_m1"), "m2": dados_m2})
                     st.success(STR["jogo_ok"])
                 except Exception as e:
                     st.error(f"{STR['jogo_err']}{e}")
@@ -2457,7 +2525,7 @@ with tab3:
                 if not pergunta_manual.strip():
                     st.warning(STR["ask_question_first"])
                 elif not keywords.strip():
-                    st.warning(STR["ask_kw_first"])
+                    st.warning(STR["ask_kw_first"] if not is_student else STR["ask_kw_student"])
                 elif not resposta_off.strip():
                     st.warning(STR["ask_answer_first"])
                 else:

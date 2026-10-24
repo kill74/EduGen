@@ -166,6 +166,14 @@ class TestAjustarNumOpcoes(unittest.TestCase):
         q = {"pergunta": "Q", "opcoes": ["A", "B"], "resposta_correta": -1}
         self.assertEqual(ajustar_num_opcoes(q, 2), q)
 
+    def test_opcoes_duplicadas_sao_unificadas(self):
+        # Erradas duplicadas (dados corrompidos/da IA) deixavam a pergunta
+        # invalida no render; agora unificam-se antes de baralhar.
+        random.seed(0)
+        q = {"pergunta": "Q", "opcoes": ["A", "B", "B", "C"], "resposta_correta": 0}
+        d = ajustar_num_opcoes(q, 4)
+        self.assertTrue(H["pergunta_valida"](d), d)
+
 
 class TestM1Offline(unittest.TestCase):
     def test_tema_adn_factual(self):
@@ -380,6 +388,35 @@ class TestRepetir(unittest.TestCase):
         self.assertTrue(strings["en"]["retry_on"].startswith("Recovery mode"))
 
 
+class TestTemaRecurso(unittest.TestCase):
+    """O tema do momento da geração (_tema) manda na exportação e no histórico."""
+
+    def test_m1_e_m2_guardam_tema(self):
+        self.assertEqual(gerar_dados_m1_offline("ADN", 4)["_tema"], "ADN")
+        self.assertEqual(gerar_dados_m2_offline("Sistemas Operativos")["_tema"], "Sistemas Operativos")
+
+    def test_geradores_normalizam_ou_fazem_fallback(self):
+        self.assertEqual(gerar_dados_m1_offline("  Hist. ", 2)["_tema"], "Hist.")
+        self.assertEqual(gerar_dados_m2_offline("   ")["_tema"], "este tema")
+        self.assertEqual(gerar_dados_m1_offline("", 2, lang="en")["_tema"], "este tema")
+
+    def test_tema_de_recurso_prefere_o_guardado(self):
+        tdr = H["tema_de_recurso"]
+        self.assertEqual(tdr({"_tema": "Volcanoes"}, "novo tema"), "Volcanoes")
+        self.assertEqual(tdr({"_tema": "   "}, "Backup"), "Backup")
+        self.assertEqual(tdr({}, "novo tema"), "novo tema")
+        self.assertEqual(tdr(None, "  "), "este tema")
+        self.assertEqual(tdr(42, "novo"), "novo")
+
+    def test_ligado_na_ui_e_no_caminho_online(self):
+        src = SRC_PATH.read_text(encoding="utf-8")
+        # def + 5 call sites (M1 offline/online, M2 offline/online, exportação)
+        self.assertGreaterEqual(src.count("tema_de_recurso("), 6)
+        self.assertIn('dados_m1["_tema"] = str(tema_m1 or "").strip() or "este tema"', src)
+        self.assertIn('dados_m2["_tema"] = str(tema_m2 or "").strip() or "este tema"', src)
+        self.assertIn("tema_exp = tema_de_recurso(dados_exp, tema_m1)", src)
+
+
 class TestHero(unittest.TestCase):
     """HTML do cabeçalho hero (painel editorial + chip de estado)."""
 
@@ -529,6 +566,26 @@ class TestEstatico(unittest.TestCase):
         self.assertEqual(self.src.count("celebrar()"), 5)
         # botões principais com o estilo primário
         self.assertEqual(self.src.count('type="primary"'), 8)
+
+    def test_editor_invalida_submissao_stale(self):
+        # adicionar pergunta/lacuna ou repor a base demo invalida a submissão
+        # anterior (senão o painel de resultados reaparece com erros falsos)
+        self.assertGreaterEqual(
+            self.src.count('st.session_state.pop("m1_submetido", None)'), 6
+        )
+
+    def test_editor_rejeita_opcoes_duplicadas_por_caixa(self):
+        # "Frames" e "frames" nas opções tornavam o radio ambíguo
+        self.assertIn("normalizar(o, remover_acentos=True) for o in opts", self.src)
+
+    def test_marca_tolerante_a_assets_em_falta(self):
+        # o entregável é um ficheiro único: sem edugen_mark.png não pode crashar
+        self.assertIn("MARCA_DISPONIVEL", self.src)
+        self.assertIn("os.path.exists(MARCA_APP)", self.src)
+
+    def test_aviso_kw_no_papel_aluno(self):
+        # o Aluno não pode "definir palavras-chave": recebe instrução para pedir ao professor
+        self.assertIn('STR["ask_kw_first"] if not is_student else STR["ask_kw_student"]', self.src)
 
 
 class TestUX(unittest.TestCase):
@@ -1064,6 +1121,11 @@ class TestExportPdf(unittest.TestCase):
     def test_carateres_desconhecidos_viram_interrogacao(self):
         self.assertEqual(_cp1252("π∑"), "??")
         self.assertIn("?", _cp1252("D π > C"))
+
+    def test_transliteracao_nfkd_para_letras_fora_do_cp1252(self):
+        # acentos sem cp1252 degradam para a letra base; o que é cp1252 passa intacto
+        self.assertEqual(_cp1252("ǎřś"), "ars")
+        self.assertEqual(_cp1252("Grécia — à noite"), "Grécia — à noite")
 
     def test_nao_texto_devolve_vazio(self):
         self.assertEqual(_cp1252(""), "")

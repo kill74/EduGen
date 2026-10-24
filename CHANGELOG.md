@@ -5,6 +5,42 @@ Todas as alterações notáveis deste projeto ficam documentadas neste ficheiro.
 O formato é inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
 
+## [Não lançado]
+
+Auditoria completa "à prova de bugs": revisão de todo o fluxo (offline + online,
+editor, recuperação, histórico e exportações) com correções e testes de regressão.
+
+### Corrigido
+
+- **Submissão antiga sobrevivia ao editor** — adicionar pergunta/lacuna ou repor a
+  base demo limpava as respostas mas não `m1_submetido`, e o painel de resultados
+  reaparecia de imediato com erros falsos "Sem resposta". Os três gatilhos do editor
+  invalidam agora a submissão anterior.
+- **Opções duplicadas no quiz** — `ajustar_num_opcoes` unifica opções erradas iguais
+  (ex. `["A","B","B","C"]`) antes de baralhar; perguntas assim deixam de ser
+  rejeitadas como inválidas no render. O editor offline também rejeita opções
+  duplicadas apenas por caixa/acento ("Frames" vs "frames").
+- **Tema fiel na exportação e no histórico** — o recurso guarda o tema do momento
+  da geração (`_tema`, nos geradores offline e no caminho Online) e um novo auxiliar
+  `tema_de_recurso` dá prioridade a ele: exportar `.md`/`.pdf`, nomes de ficheiro e
+  as linhas do histórico já não mudam de título quando o tema da barra lateral é
+  editado depois de gerar.
+- **PDF translitera acentos fora do cp1252** — `_cp1252` passa a tentar a
+  decomposição NFKD (o acento cai, p. ex. "ř"→"r") antes de substituir por "?";
+  carateres cp1252 e o em dash passam intactos, `π`/`∑` continuam "?".
+- **Marca tolerante a `assets/` em falta** — `page_icon`/`st.logo` degradeam para um
+  ícone material quando `assets/edugen_mark.png` não existe (o entregável é um
+  ficheiro único; uma cópia só do `.py` não pode crashar no arranque).
+- **Aviso de palavras-chave no papel Aluno (Módulo 3 offline)** — quando o professor
+  não definiu palavras-chave, o Aluno passava a mensagem "Defina as palavras-chave
+  esperadas", que só o Professor pode cumprir; agora recebe instrução para pedir ao
+  professor (chave nova `ask_kw_student`, paridade PT/EN verificada).
+
+### Alterado
+
+- Suíte alargada para 175 testes unitários (+10): dedupe de opções, transliteração
+  NFKD do PDF, tema do recurso e 4 verificações estáticas novas.
+
 ## [1.0.0] — 2026-10-24
 
 Primeira versão marcada: integra o trabalho de robustez, o redesign de identidade
