@@ -1,4 +1,4 @@
-"""Smoke test end-to-end da app real (Streamlit AppTest) — 12 fluxos.
+"""Smoke test end-to-end da app real (Streamlit AppTest) — 13 fluxos.
 
 Corre com:  python smoke_fluxos.py
 Requer as dependências do requirements.txt instaladas.
@@ -53,6 +53,19 @@ sem_excecao(at, "3 submeter M1")
 assert pagina_tem(at, "Resumo de estudo"), "resumo de estudo em falta"
 assert len(at.metric) >= 1, "métrica do resultado em falta"
 print("2/3. M1 offline gerar+submeter (com resumo de estudo) OK")
+
+# 3b. com falhas -> modo de recuperação (retry) e sair limpo
+b_retry = next((b for b in at.button if b.key == "btn_retry_m1"), None)
+assert b_retry is not None, "botão de retry em falta (devia aparecer com erros)"
+b_retry.click().run()
+sem_excecao(at, "3b entrar em modo de recuperação")
+assert pagina_tem(at, "Modo de recuperação"), "banner do modo de recuperação em falta"
+b_sair = next((b for b in at.button if b.key == "btn_retry_sair_m1"), None)
+assert b_sair is not None, "botão de sair do modo de recuperação em falta"
+b_sair.click().run()
+sem_excecao(at, "3b sair do modo de recuperação")
+assert not pagina_tem(at, "Modo de recuperação"), "banner devia desaparecer ao sair"
+print("3b. M1 modo de recuperação (retry + sair) OK")
 
 # 4. M2: gerar + validar sem escolhas (erros + resumo)
 at.button(key="btn_m2").click().run()
@@ -123,9 +136,11 @@ if len(opcoes) > 1:
     assert at3.selectbox(key="modelo").value == opcoes[1]
     print("11. escolha manual de modelo OK")
 
-# 12. exportar recurso (Professor, offline): botão presente e exportação Markdown
+# 12. exportar recurso (Professor, offline): botão presente e exportação Markdown (+ PDF)
 d = next((x for x in at.download_button if x.key == "btn_exportar_m1"), None)
 assert d is not None, "download de exportação em falta"
-print("12. exportar recurso (.md) OK")
+d_pdf = next((x for x in at.download_button if x.key == "btn_exportar_pdf_m1"), None)
+assert d_pdf is not None, "download do PDF em falta (fpdf2 devia estar instalado)"
+print("12. exportar recurso (.md + .pdf) OK")
 
 print("ALL APPTEST PASSED")

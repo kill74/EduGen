@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import io
 import json
@@ -7,6 +8,7 @@ import os
 import random
 import re
 import unicodedata
+from datetime import datetime
 
 import streamlit as st
 from PIL import Image
@@ -23,6 +25,15 @@ except ImportError:
     genai = None
     types = None
     GEMINI_LIB_DISPONIVEL = False
+
+# O fpdf2 é opcional: sem ele a app funciona e o botão de PDF não aparece
+try:
+    from fpdf import FPDF
+
+    PDF_LIB_DISPONIVEL = True
+except ImportError:
+    FPDF = None
+    PDF_LIB_DISPONIVEL = False
 
 
 # ==========================================================
@@ -262,6 +273,53 @@ def imagem_para_bytes(imagem) -> bytes:
     return buf.getvalue()
 
 
+# ---- Histórico de recursos da sessão (barra lateral, só Professor) ----
+MAX_HISTORICO = 5
+
+
+def registar_historico(tipo, tema, recursos):
+    """Guarda uma cópia profunda do recurso gerado no topo do histórico da sessão.
+
+    'recursos' é {"m1": dict | None, "m2": dict | None}. A cópia profunda isola
+    o histórico de edições posteriores: o editor offline muta os dicts do
+    session_state no próprio local. Mantém-se MAX_HISTORICO itens no máximo.
+    """
+    recursos = recursos if isinstance(recursos, dict) else {}
+    historico = st.session_state.setdefault("historico_recursos", [])
+    historico.insert(
+        0,
+        {
+            "tipo": str(tipo),
+            "tema": str(tema),
+            "quando": datetime.now().strftime("%H:%M"),
+            "m1": copy.deepcopy(recursos.get("m1")) if isinstance(recursos.get("m1"), dict) else None,
+            "m2": copy.deepcopy(recursos.get("m2")) if isinstance(recursos.get("m2"), dict) else None,
+        },
+    )
+    del historico[MAX_HISTORICO:]
+
+
+def restaurar_do_historico(item):
+    """Repõe o recurso do histórico nas abas e limpa respostas/submissões pendentes.
+
+    Nunca partilha estruturas com o histórico: repõe cópias profundas para que
+    edições futuras (editor offline) não corrompam o snapshot que ficou guardado.
+    """
+    m1 = item.get("m1")
+    if isinstance(m1, dict):
+        st.session_state["dados_m1"] = copy.deepcopy(m1)
+    else:
+        st.session_state.pop("dados_m1", None)
+    m2 = item.get("m2")
+    if isinstance(m2, dict):
+        st.session_state["dados_m2"] = copy.deepcopy(m2)
+    else:
+        st.session_state.pop("dados_m2", None)
+    st.session_state.pop("dados_m1_recuperacao", None)
+    st.session_state.pop("dados_m2_recuperacao", None)
+    limpar_respostas_antigas(extras=("m1_submetido", "m2_submetido", "def_baralhadas", "ed_texto"))
+
+
 def limpar_respostas_antigas(prefixos=("q_", "lac_", "assoc_"), extras=()):
     """Remove respostas anteriores do session_state ao gerar novo recurso.
 
@@ -483,18 +541,217 @@ BANCO_M1_FOTO = {
 }
 
 
-def gerar_dados_m1_offline(tema: str, num_opcoes: int) -> dict:
-    """Gera recurso M1 sem IA: usa banco local ou template genérico honesto."""
+# ---- Bancos offline Módulo 1 em inglês (espelhos fiáveis dos PT) ----
+BANCO_M1_ADN_EN = {
+    "texto_explicativo": (
+        "DNA (deoxyribonucleic acid) is the molecule that stores genetic information. "
+        "It is made of two complementary strands wound in a double helix, built from "
+        "nucleotides (deoxyribose + phosphate + nitrogenous base: adenine, thymine, "
+        "cytosine or guanine). The A-T and C-G complementarity enables semiconservative "
+        "replication and transcription into RNA."
+    ),
+    "perguntas": [
+        {
+            "pergunta": "Which nitrogenous bases does DNA contain?",
+            "opcoes": [
+                "Adenine, Thymine, Cytosine and Guanine",
+                "Adenine, Uracil, Cytosine and Guanine",
+                "Adenine, Thymine, Cytosine and Uracil",
+                "Adenine, Thymine, Ribose and Phosphate",
+            ],
+            "resposta_correta": 0,
+            "explicacao": "DNA uses A-T and C-G. Uracil replaces thymine only in RNA.",
+        },
+        {
+            "pergunta": "What is a DNA nucleotide?",
+            "opcoes": [
+                "Deoxyribose + phosphate + nitrogenous base",
+                "Ribose + phosphate + uracil",
+                "Amino acid + phosphate + base",
+                "Glucose + phosphate + thymine",
+            ],
+            "resposta_correta": 0,
+            "explicacao": "Each DNA nucleotide has deoxyribose, a phosphate group and a base (A, T, C or G).",
+        },
+    ],
+    "fill_in_the_blank": [
+        {
+            "frase": "DNA is made of [___] that contain the nitrogenous bases.",
+            "palavra_oculta": "nucleotides",
+        },
+        {
+            "frase": "In DNA, adenine always pairs with [___].",
+            "palavra_oculta": "thymine",
+        },
+    ],
+}
+
+BANCO_M1_SO_EN = {
+    "texto_explicativo": (
+        "An operating system manages the hardware and provides services to applications. "
+        "For memory management, it uses paging (fixed-size blocks: pages/frames), "
+        "segmentation (logical blocks) and virtual memory (swap/demand paging) to isolate "
+        "processes and optimise the use of RAM."
+    ),
+    "perguntas": [
+        {
+            "pergunta": "What is paging in memory management?",
+            "opcoes": [
+                "Dividing memory into fixed-size blocks (pages/frames)",
+                "Dividing the disk into partitions",
+                "A file compression technique",
+                "A network protocol for shared memory",
+            ],
+            "resposta_correta": 0,
+            "explicacao": "Paging divides logical memory into pages and physical memory into fixed-size frames.",
+        },
+        {
+            "pergunta": "What does virtual memory allow?",
+            "opcoes": [
+                "Letting processes use more memory than the available RAM",
+                "Speeding up the processor",
+                "Replacing the file system",
+                "Creating automatic backups",
+            ],
+            "resposta_correta": 0,
+            "explicacao": "Virtual memory combines RAM and disk (swap) to extend the addressable space.",
+        },
+    ],
+    "fill_in_the_blank": [
+        {
+            "frase": "In paging, physical memory is divided into blocks called [___].",
+            "palavra_oculta": "frames",
+        },
+        {
+            "frase": "The [___] allows processes larger than the available RAM to run.",
+            "palavra_oculta": "virtual memory",
+        },
+    ],
+}
+
+BANCO_M1_FOTO_EN = {
+    "texto_explicativo": (
+        "Photosynthesis is the process by which plants, algae and some bacteria convert "
+        "light energy into chemical energy. Chlorophyll, inside the chloroplasts, absorbs "
+        "light and uses that energy to convert carbon dioxide and water into glucose and "
+        "oxygen. In the light stage (photochemical), light splits water and releases "
+        "oxygen; in the dark stage (Calvin cycle), CO₂ is fixed into organic compounds. "
+        "Photosynthesis sustains almost all life on Earth and has kept the atmosphere "
+        "rich in oxygen."
+    ),
+    "perguntas": [
+        {
+            "pergunta": "Which pigment captures the energy of light in photosynthesis?",
+            "opcoes": ["Chlorophyll", "Haemoglobin", "Melanin", "Collagen"],
+            "resposta_correta": 0,
+            "explicacao": "Chlorophyll, inside the chloroplasts, is the pigment that absorbs light energy.",
+        },
+        {
+            "pergunta": "What are the products of photosynthesis?",
+            "opcoes": [
+                "Glucose and oxygen",
+                "Carbon dioxide and water",
+                "Starch and mineral salts",
+                "Proteins and nucleic acids",
+            ],
+            "resposta_correta": 0,
+            "explicacao": "CO₂ and water (reactants) are converted into glucose and O₂ (products).",
+        },
+        {
+            "pergunta": "Where does photosynthesis take place in the plant cell?",
+            "opcoes": ["In the chloroplasts", "In the mitochondria", "In the lysosome", "In the nucleus"],
+            "resposta_correta": 0,
+            "explicacao": "The chloroplast concentrates the pigments and the enzymes of photosynthesis.",
+        },
+    ],
+    "fill_in_the_blank": [
+        {
+            "frase": "In photosynthesis, the pigment [___] absorbs the energy of light.",
+            "palavra_oculta": "chlorophyll",
+        },
+        {
+            "frase": "Photosynthesis produces glucose and releases [___].",
+            "palavra_oculta": "oxygen",
+        },
+        {
+            "frase": "Carbon dioxide enters the leaves through the [___].",
+            "palavra_oculta": "stomata",
+        },
+    ],
+}
+
+
+def gerar_dados_m1_offline(tema: str, num_opcoes: int, lang: str = "pt") -> dict:
+    """Gera recurso M1 sem IA: usa banco local (PT ou EN) ou template genérico honesto."""
     tema = (tema or "").strip() or "este tema"
     t = tema.lower()
+    en = (lang == "en")
     if "adn" in t or "dna" in t or "genét" in t or "genet" in t:
-        base = BANCO_M1_ADN
-    elif "sistema" in t or "memória" in t or "memoria" in t or "operativo" in t:
-        base = BANCO_M1_SO
+        base = BANCO_M1_ADN_EN if en else BANCO_M1_ADN
+    elif (
+        "sistema" in t
+        or "memória" in t
+        or "memoria" in t
+        or "operativo" in t
+        or "operating" in t
+        or "memory" in t
+    ):
+        base = BANCO_M1_SO_EN if en else BANCO_M1_SO
     elif "fotoss" in t or "cloro" in t or "planta" in t or "photosynth" in t:
-        base = BANCO_M1_FOTO
+        base = BANCO_M1_FOTO_EN if en else BANCO_M1_FOTO
     else:
         # Genérico: não inventa factos; foca método de estudo do tema
+        if en:
+            return {
+                "texto_explicativo": (
+                    f"Demo resource (offline mode) about '{tema}'. Without an API key it is not "
+                    "possible to generate new factual content with AI. Use this template in class: "
+                    f"1) define 3 key concepts of {tema}; 2) give a practical example; 3) list a "
+                    "frequent student question. For automatic factual content use Online mode or "
+                    "pick the demo themes 'ADN', 'Fotossíntese' or 'Sistemas Operativos'."
+                ),
+                "perguntas": [
+                    ajustar_num_opcoes(
+                        {
+                            "pergunta": f"What is a good strategy for studying '{tema}'?",
+                            "opcoes": [
+                                "Summarise the key concepts and test yourself with questions",
+                                "Read once without taking notes",
+                                "Memorise without understanding the examples",
+                                "Cram on the eve with no revision",
+                            ],
+                            "resposta_correta": 0,
+                            "explicacao": "Active recall and summaries are study strategies with proven effectiveness.",
+                        },
+                        num_opcoes,
+                    ),
+                    ajustar_num_opcoes(
+                        {
+                            "pergunta": f"When explaining '{tema}' to a classmate, what matters most?",
+                            "opcoes": [
+                                "Use a concrete example and check understanding",
+                                "Use only technical terms with no examples",
+                                "Speak as fast as possible",
+                                "Avoid questions from the classmate",
+                            ],
+                            "resposta_correta": 0,
+                            "explicacao": "Concrete examples and understanding checks consolidate learning.",
+                        },
+                        num_opcoes,
+                    ),
+                ],
+                "fill_in_the_blank": [
+                    {
+                        "frase": f"To master {tema}, I must review my notes with [___].",
+                        "palavra_oculta": "regularity",
+                    },
+                    {
+                        "frase": "A good summary must highlight the main [___] of the theme.",
+                        "palavra_oculta": "ideas",
+                    },
+                ],
+                "_demo_generico": True,
+            }
         return {
             "texto_explicativo": (
                 f"Recurso DEMO (modo offline) sobre '{tema}'. Sem chave API não é possível "
@@ -613,15 +870,92 @@ BANCO_M2_FOTO = [
 ]
 
 
-def gerar_dados_m2_offline(tema: str) -> dict:
+# ---- Bancos offline Módulo 2 em inglês (espelhos fiáveis dos PT) ----
+BANCO_M2_SO_EN = [
+    {
+        "conceito": "Paging",
+        "definicao": "Memory management technique that divides memory into fixed-size blocks (pages and frames).",
+    },
+    {
+        "conceito": "Virtual Memory",
+        "definicao": "Extension of RAM using disk (swap), allowing processes larger than physical memory.",
+    },
+    {
+        "conceito": "Scheduler",
+        "definicao": "OS component that decides which process/thread uses the CPU at any moment.",
+    },
+    {
+        "conceito": "Deadlock",
+        "definicao": "Situation where two or more processes stay blocked waiting for each other's resources.",
+    },
+]
+
+BANCO_M2_ADN_EN = [
+    {
+        "conceito": "Nucleotide",
+        "definicao": "Basic unit of DNA: deoxyribose + phosphate + nitrogenous base (A, T, C or G).",
+    },
+    {
+        "conceito": "Double helix",
+        "definicao": "DNA structure with two complementary strands wound together (A-T, C-G).",
+    },
+    {
+        "conceito": "Semiconservative replication",
+        "definicao": "Each new DNA molecule keeps one original strand and one new strand.",
+    },
+    {
+        "conceito": "Transcription",
+        "definicao": "Synthesis of RNA from a DNA template.",
+    },
+]
+
+BANCO_M2_FOTO_EN = [
+    {
+        "conceito": "Chlorophyll",
+        "definicao": "Green pigment of the chloroplasts that absorbs light energy.",
+    },
+    {
+        "conceito": "Stomata",
+        "definicao": "Leaf pores where carbon dioxide enters and oxygen leaves.",
+    },
+    {
+        "conceito": "Light stage",
+        "definicao": "Light-dependent reactions that split water and release oxygen.",
+    },
+    {
+        "conceito": "Calvin cycle",
+        "definicao": "Light-independent stage where CO₂ is fixed into glucose.",
+    },
+]
+
+
+def gerar_dados_m2_offline(tema: str, lang: str = "pt") -> dict:
     tema = (tema or "").strip() or "este tema"
     t = tema.lower()
-    if "sistema" in t or "memória" in t or "memoria" in t or "operativo" in t:
-        return {"pares": [dict(p) for p in BANCO_M2_SO]}
+    en = (lang == "en")
+    if (
+        "sistema" in t
+        or "memória" in t
+        or "memoria" in t
+        or "operativo" in t
+        or "operating" in t
+        or "memory" in t
+    ):
+        return {"pares": [dict(p) for p in (BANCO_M2_SO_EN if en else BANCO_M2_SO)]}
     if "adn" in t or "dna" in t or "genét" in t or "genet" in t:
-        return {"pares": [dict(p) for p in BANCO_M2_ADN]}
+        return {"pares": [dict(p) for p in (BANCO_M2_ADN_EN if en else BANCO_M2_ADN)]}
     if "fotoss" in t or "cloro" in t or "planta" in t or "photosynth" in t:
-        return {"pares": [dict(p) for p in BANCO_M2_FOTO]}
+        return {"pares": [dict(p) for p in (BANCO_M2_FOTO_EN if en else BANCO_M2_FOTO)]}
+    if en:
+        return {
+            "pares": [
+                {"conceito": f"Concept 1 of {tema}", "definicao": f"Introductory definition of {tema} (demo example 1)."},
+                {"conceito": f"Concept 2 of {tema}", "definicao": f"Intermediate definition of {tema} (demo example 2)."},
+                {"conceito": f"Concept 3 of {tema}", "definicao": f"Advanced definition of {tema} (demo example 3)."},
+                {"conceito": f"Concept 4 of {tema}", "definicao": f"Practical application of {tema} (demo example 4)."},
+            ],
+            "_demo_generico": True,
+        }
     return {
         "pares": [
             {"conceito": f"Conceito 1 de {tema}", "definicao": f"Definição introdutória de {tema} (exemplo demo 1)."},
@@ -685,6 +1019,65 @@ def exportar_recurso_markdown(tema: str, dados: dict, pares: list | None = None)
     return "\n".join(linhas).strip() + "\n"
 
 
+# ---- Exportar PDF (fpdf2, dependência opcional) ----
+_SUBSTITUICOS_PDF = {
+    "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4",
+    "₅": "5", "₆": "6", "₇": "7", "₈": "8", "₉": "9",
+    "↔": "<->", "→": "->", "←": "<-",
+    "≥": ">=", "≤": "<=", "≠": "!=",
+}
+
+
+def _cp1252(texto):
+    """Sanitiza texto para a fonte core Helvetica do PDF (pág. códigos Windows-1252).
+
+    Os bancos e as respostas da IA usam carateres que faltam no cp1252
+    (subscritos tipo CO₂, setas ↔/→, comparadores ≥/≤): substituí-los de forma
+    determinística em vez de crashar. Carateres desconhecidos tornam-se '?'
+    (o traço — existe no cp1252, por isso passa intacto).
+    """
+    if not isinstance(texto, str):
+        return ""
+    for original, substituto in _SUBSTITUICOS_PDF.items():
+        texto = texto.replace(original, substituto)
+    return texto.encode("cp1252", errors="replace").decode("cp1252")
+
+
+def exportar_recurso_pdf(tema, dados, pares=None):
+    """Recurso completo em PDF a partir do mesmo Markdown do export .md.
+
+    Devolve None quando o fpdf2 não está instalado (a app mostra apenas o .md)
+    ou quando não há conteúdo facial a exportar.
+    """
+    if not PDF_LIB_DISPONIVEL or FPDF is None:
+        return None
+    recurso_md = exportar_recurso_markdown(tema, dados, pares)
+    if not recurso_md.strip():
+        return None
+    pdf = FPDF()
+    # Fontes core são latin-1 por defeito no fpdf2; elevamos para windows-1252
+    # para aceitar em dash, travessões e aspas curvas do texto pedagógico.
+    pdf.core_fonts_encoding = "windows-1252"
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font(family="Helvetica", style="", size=11)
+    for linha in recurso_md.splitlines():
+        linha = _cp1252(linha).strip()
+        if linha.startswith("# "):
+            pdf.set_font(family="Helvetica", style="B", size=16)
+            pdf.multi_cell(0, 9, linha[2:], new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(3)
+            pdf.set_font(family="Helvetica", style="", size=11)
+        elif linha.startswith("## "):
+            pdf.set_font(family="Helvetica", style="B", size=13)
+            pdf.multi_cell(0, 7, linha[3:], new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(2)
+            pdf.set_font(family="Helvetica", style="", size=11)
+        else:
+            pdf.multi_cell(0, 5, linha, new_x="LMARGIN", new_y="NEXT")
+    return bytes(pdf.output())
+
+
 def corrigir_por_keywords(resposta: str, keywords: str) -> dict:
     """Correção local (modo offline): % de palavras-chave encontradas na resposta com fronteiras de palavra."""
     originais = [k.strip() for k in keywords.split(",") if k.strip()]
@@ -733,6 +1126,32 @@ def construir_resumo_estudo(erros, total: int, onde: str) -> str:
             linhas.append("- " + STR["study_item"].format(etiqueta=etiqueta, certa=certa))
     linhas += ["", STR["study_tip"].format(onde=onde)]
     return "\n".join(linhas)
+
+
+# ---- Modo de recuperação: praticar de novo só o que falhou (Módulos 1 e 2) ----
+def dados_repetir_m1(texto_explicativo, falha_perguntas, falha_lacunas, total_original):
+    """Recurso de recuperação do Módulo 1 com apenas os itens falhados.
+
+    O texto explicativo acompanha (para rever antes de repetir) e '_total_original'
+    alimenta o banner do modo de recuperação. Itens copiados em profundidade
+    para nunca partilhar estrutura com o recurso original.
+    """
+    return {
+        "texto_explicativo": texto_explicativo,
+        "perguntas": copy.deepcopy(list(falha_perguntas or [])),
+        "fill_in_the_blank": copy.deepcopy(list(falha_lacunas or [])),
+        "_recuperacao": True,
+        "_total_original": total_original,
+    }
+
+
+def dados_repetir_m2(falha_pares, total_original):
+    """Recurso de recuperação do Módulo 2 com apenas os pares falhados."""
+    return {
+        "pares": copy.deepcopy(list(falha_pares or [])),
+        "_recuperacao": True,
+        "_total_original": total_original,
+    }
 
 
 def construir_hero(titulo: str, subtitulo: str, chip: str, estado: str = "on") -> str:
@@ -861,7 +1280,6 @@ STRINGS = {
         "grade_quiz": "Nota Final do Quiz",
         "no_valid": "Sem perguntas válidas para avaliar.",
         "student_no_data": "O professor ainda não gerou este recurso. Aguarde ou peça para gerar.",
-        "demo_bank_note": "Nota: o banco demo offline está em português.",
         "m2_header": "2. Jogo de Associação de Conceitos",
         "m2_desc": "Gere dinâmicas interativas onde os estudantes associam termos à respetiva definição pedagógica.",
         "tema_m2_label": "Tema do Jogo de Associação:",
@@ -937,7 +1355,7 @@ STRINGS = {
         "ed_reset": "Repor base demo",
         "ed_reset_ok": "Base demo reposta.",
         "ed_export": "Exportar recurso gerado",
-        "ed_export_hint": "Descarrega o recurso em Markdown (texto, quiz com respostas, lacunas e pares do jogo) para arquivar ou converter em PDF. Para impressão direta usa Ctrl+P: sai limpo, sem barra lateral.",
+        "ed_export_hint": "Descarrega o recurso em Markdown (texto, quiz com respostas, lacunas e pares do jogo) para arquivar; o botão .pdf gera o mesmo recurso em PDF quando o pacote fpdf2 está instalado. Para impressão direta usa Ctrl+P: sai limpo, sem barra lateral.",
         "ed_export_btn": "Descarregar .md",
         "model_quota_hint": "A quota diária deste modelo esgotou na tua chave gratuita — escolhe um modelo Flash na barra lateral ou tenta mais tarde.",
         "model_switch": "O modelo '{antigo}' atingiu a quota. Mudei automaticamente para '{novo}' e continuei — podes mudar quando quiseres na barra lateral.",
@@ -953,6 +1371,21 @@ STRINGS = {
         "study_lac": "Lacuna {n}",
         "study_par": "Par {n}",
         "perfect_score": "Pontuação perfeita! Continua assim.",
+        "bloom_label": "Nível cognitivo das perguntas (taxonomia de Bloom):",
+        "bloom_recordar": "Recordar — factos e definições",
+        "bloom_aplicar": "Aplicar — usar o conhecimento em situações novas",
+        "bloom_analizar": "Analisar — comparar, justificar e inferir",
+        "bloom_prompt": "Os enunciados, as opções e as explicações devem exigir exatamente este nível cognitivo — nem mais, nem menos.",
+        "bloom_help": "Apenas afeta a geração Online (com IA); os bancos demo offline têm níveis fixos.",
+        "retry_m1_btn": "Praticar só o que falhei",
+        "retry_m2_btn": "Praticar só o que falhei",
+        "retry_exit": "Sair do modo de recuperação",
+        "retry_on": "Modo de recuperação: agora praticas apenas os itens que falhaste ({falhados} de {total} do recurso original).",
+        "hist_title": "Recursos desta sessão",
+        "hist_note": "Histórico dos recursos gerados nesta sessão (mais recente primeiro; máx. 5). Repor substitui o conteúdo atual das abas.",
+        "hist_restore": "Repor",
+        "pdf_btn": "Descarregar .pdf",
+        "pdf_falhou": "Não foi possível gerar o PDF (detalhes no output do servidor). O ficheiro .md continua disponível.",
     },
     "en": {
         "role_label": "Role:",
@@ -1019,7 +1452,6 @@ STRINGS = {
         "grade_quiz": "Final Quiz Grade",
         "no_valid": "No valid questions to assess.",
         "student_no_data": "The teacher has not generated this resource yet. Please wait or ask them to generate it.",
-        "demo_bank_note": "Note: the offline demo bank is in Portuguese.",
         "m2_header": "2. Concept-Matching Game",
         "m2_desc": "Generate interactive dynamics where students match terms to their pedagogical definition.",
         "tema_m2_label": "Matching Game Theme:",
@@ -1095,7 +1527,7 @@ STRINGS = {
         "ed_reset": "Restore demo base",
         "ed_reset_ok": "Demo base restored.",
         "ed_export": "Export generated resource",
-        "ed_export_hint": "Downloads the resource as Markdown (text, quiz with answers, gaps and game pairs) to archive or convert to PDF. For direct printing use Ctrl+P: it prints clean, without the sidebar.",
+        "ed_export_hint": "Downloads the resource as Markdown (text, quiz with answers, gaps and game pairs) to archive; the .pdf button builds the same resource as PDF when the fpdf2 package is installed. For direct printing use Ctrl+P: it prints clean, without the sidebar.",
         "ed_export_btn": "Download .md",
         "model_quota_hint": "This model's daily quota is exhausted on your free key — pick a Flash model in the sidebar or try again later.",
         "model_switch": "Model '{antigo}' hit its quota. I switched automatically to '{novo}' and continued — you can change it anytime in the sidebar.",
@@ -1111,6 +1543,21 @@ STRINGS = {
         "study_lac": "Gap {n}",
         "study_par": "Pair {n}",
         "perfect_score": "Perfect score! Keep it up.",
+        "bloom_label": "Question cognitive level (Bloom taxonomy):",
+        "bloom_recordar": "Remember — facts and definitions",
+        "bloom_aplicar": "Apply — use knowledge in new situations",
+        "bloom_analizar": "Analyze — compare, justify and infer",
+        "bloom_prompt": "Prompts, options and explanations must demand exactly this cognitive level — no more, no less.",
+        "bloom_help": "Only affects Online (AI) generation; the offline demo banks have fixed levels.",
+        "retry_m1_btn": "Practice only what I missed",
+        "retry_m2_btn": "Practice only what I missed",
+        "retry_exit": "Exit recovery mode",
+        "retry_on": "Recovery mode: you are now practising only the items you missed ({falhados} of {total} in the original resource).",
+        "hist_title": "Session resources",
+        "hist_note": "History of the resources generated this session (newest first; max 5). Restoring replaces the current tab content.",
+        "hist_restore": "Restore",
+        "pdf_btn": "Download .pdf",
+        "pdf_falhou": "Could not build the PDF (details in the server output). The .md file is still available.",
     },
 }
 
@@ -1360,6 +1807,19 @@ with st.sidebar:
         else:
             st.warning(STR["waiting_key"])
 
+    # ---- Histórico de recursos gerados nesta sessão (só Professor) ----
+    _historico = st.session_state.get("historico_recursos") or []
+    if _historico and not is_student:
+        with st.expander(STR["hist_title"], icon=":material/history:"):
+            st.caption(STR["hist_note"])
+            for _hi, _item in enumerate(_historico):
+                col_h1, col_h2 = st.columns([3, 1])
+                with col_h1:
+                    st.markdown(f"**{_item['tipo'].upper()} · {_item['tema']}**  \n{_item['quando']}")
+                with col_h2:
+                    if st.button(STR["hist_restore"], icon=":material/restore:", key=f"hist_restore_{_hi}"):
+                        restaurar_do_historico(_item)
+
 # ==========================================================
 # CABEÇALHO (HERO ANIMADO)
 # ==========================================================
@@ -1476,19 +1936,37 @@ with tab1:
     with col_input2:
         num_opcoes = st.slider(STR["num_opc_label"], min_value=2, max_value=6, value=4, key="num_opc")
 
+    # Nível cognitivo das perguntas (taxonomia de Bloom) — só faz sentido para quem gera
+    nivel_bloom = "recordar"
+    if not is_student:
+        rotulos_bloom = {
+            "recordar": STR["bloom_recordar"],
+            "aplicar": STR["bloom_aplicar"],
+            "analizar": STR["bloom_analizar"],
+        }
+        nivel_bloom = st.selectbox(
+            STR["bloom_label"],
+            list(rotulos_bloom),
+            index=0,
+            format_func=rotulos_bloom.get,
+            key="bloom_m1",
+            help=STR["bloom_help"],
+        )
+
     if not is_student and st.button(STR["btn_gen_m1"], icon=":material/auto_awesome:", key="btn_m1", type="primary"):
         with st.spinner(STR["spin_m1"]):
             limpar_respostas_antigas(prefixos=("q_", "lac_"), extras=("m1_submetido",))
+            st.session_state.pop("dados_m1_recuperacao", None)
             if offline:
-                dados_m1 = gerar_dados_m1_offline(tema_m1, num_opcoes)
+                dados_m1 = gerar_dados_m1_offline(tema_m1, num_opcoes, lang=LANG)
                 st.session_state["dados_m1"] = dados_m1
                 if dados_m1.get("_demo_generico"):
                     st.success(STR["demo_generic_ok"])
                 else:
                     st.success(STR["demo_bank_ok"])
-                if LANG == "en":
-                    st.info(STR["demo_bank_note"])
+                registar_historico("m1", tema_m1, {"m1": dados_m1, "m2": st.session_state.get("dados_m2")})
             else:
+                nivel_txt = STR[f"bloom_{nivel_bloom}"]
                 prompt_m1 = f"""
                 {INSTR}
                 Atua como um professor e especialista pedagógico no tema '{tema_m1}' / Act as a teacher on '{tema_m1}'.
@@ -1496,6 +1974,7 @@ with tab1:
                 1. 'texto_explicativo': Um resumo pedagógico e rigoroso sobre o tema (aproximadamente 200 palavras).
                 2. 'perguntas': Uma lista de 2 perguntas de escolha múltipla. Cada pergunta deve ter exatamente {num_opcoes} opções de resposta, um índice de 'resposta_correta' (inteiro 0 a {num_opcoes - 1}) e uma 'explicacao' da solução.
                 3. 'fill_in_the_blank': 2 frases com uma lacuna marcada como '[___]', a palavra correta para preencher a lacuna ('palavra_oculta') e o contexto.
+                4. Dificuldade cognitiva das perguntas (taxonomia de Bloom): '{nivel_txt}' — {STR['bloom_prompt']}
 
                 Responde EXCLUSIVAMENTE em formato JSON válido com a seguinte estrutura:
                 {{
@@ -1522,6 +2001,7 @@ with tab1:
                     if not isinstance(dados_m1, dict):
                         raise ValueError(STR["bad_json"])
                     st.session_state["dados_m1"] = dados_m1
+                    registar_historico("m1", tema_m1, {"m1": dados_m1, "m2": st.session_state.get("dados_m2")})
                     st.success(STR["gen_ok"])
                 except Exception as e:
                     st.error(f"{STR['gen_err']}{e}")
@@ -1532,7 +2012,7 @@ with tab1:
         with st.expander(STR["ed_title"]):
             if "dados_m1" not in st.session_state:
                 if st.button(STR["ed_load"], icon=":material/download:", key="ed_load"):
-                    st.session_state["dados_m1"] = gerar_dados_m1_offline(tema_m1, num_opcoes)
+                    st.session_state["dados_m1"] = gerar_dados_m1_offline(tema_m1, num_opcoes, lang=LANG)
                     st.rerun()
             else:
                 d_ed = st.session_state["dados_m1"]
@@ -1590,8 +2070,9 @@ with tab1:
                             st.rerun()
 
                     if st.button(STR["ed_reset"], icon=":material/restart_alt:", key="ed_reset"):
-                        st.session_state["dados_m1"] = gerar_dados_m1_offline(tema_m1, num_opcoes)
+                        st.session_state["dados_m1"] = gerar_dados_m1_offline(tema_m1, num_opcoes, lang=LANG)
                         st.session_state.pop("ed_texto", None)
+                        st.session_state.pop("dados_m1_recuperacao", None)
                         limpar_chaves_resposta_m1()
                         st.success(STR["ed_reset_ok"])
                         st.rerun()
@@ -1615,15 +2096,36 @@ with tab1:
                 mime="text/markdown",
                 key="btn_exportar_m1",
             )
+            if PDF_LIB_DISPONIVEL:
+                try:
+                    pdf_bytes = exportar_recurso_pdf(
+                        tema_m1,
+                        st.session_state["dados_m1"],
+                        pares_exp if isinstance(pares_exp, list) else None,
+                    )
+                except Exception:
+                    # Um erro no PDF não pode partir a aba; o .md continua disponível
+                    pdf_bytes = None
+                    st.caption(STR["pdf_falhou"])
+                if pdf_bytes:
+                    st.download_button(
+                        STR["pdf_btn"],
+                        data=pdf_bytes,
+                        file_name=f"edugen_{nome_fich}.pdf",
+                        mime="application/pdf",
+                        key="btn_exportar_pdf_m1",
+                    )
 
     if "dados_m1" not in st.session_state:
         if is_student:
             st.info(STR["student_no_data"])
     else:
-        dados = st.session_state["dados_m1"]
+        dados = st.session_state.get("dados_m1_recuperacao") or st.session_state["dados_m1"]
+        em_recuperacao_m1 = bool(st.session_state.get("dados_m1_recuperacao"))
         if not isinstance(dados, dict):
             st.error(STR["bad_data"])
             if st.button(STR["fix_data"], icon=":material/delete:", key="fix_m1"):
+                st.session_state.pop("dados_m1_recuperacao", None)
                 st.session_state.pop("dados_m1", None)
                 st.rerun()
         else:
@@ -1633,6 +2135,15 @@ with tab1:
                 perguntas = []
             if not isinstance(lacunas, list):
                 lacunas = []
+
+            if em_recuperacao_m1:
+                falhados = len(perguntas) + len(lacunas)
+                st.warning(STR["retry_on"].format(falhados=falhados, total=dados.get("_total_original", falhados)))
+                if st.button(STR["retry_exit"], icon=":material/close:", key="btn_retry_sair_m1"):
+                    st.session_state.pop("dados_m1_recuperacao", None)
+                    limpar_chaves_resposta_m1()
+                    st.session_state.pop("m1_submetido", None)
+                    st.rerun()
 
             st.subheader(STR["texto_sub"])
             texto_m1 = dados.get("texto_explicativo") or ""
@@ -1682,12 +2193,15 @@ with tab1:
                 st.subheader(STR["result_sub"])
 
                 erros_estudo = []
+                falha_perguntas = []
+                falha_lacunas = []
                 acertos_quiz = 0
                 for idx, q in perguntas_validas:
                     resp_correta_texto = q["opcoes"][q["resposta_correta"]]
                     escolha = respostas_aluno_m1.get(idx)
                     if escolha is None:
                         st.error(f"P{idx + 1}: {STR['no_answer']}'{resp_correta_texto}'.")
+                        falha_perguntas.append(q)
                         erros_estudo.append(
                             {
                                 "etiqueta": STR["study_q"].format(n=idx + 1),
@@ -1702,6 +2216,7 @@ with tab1:
                         st.error(
                             f"P{idx + 1}: {STR['incorrect']}'{resp_correta_texto}'{STR['explic_label']}{q.get('explicacao', '')}"
                         )
+                        falha_perguntas.append(q)
                         erros_estudo.append(
                             {
                                 "etiqueta": STR["study_q"].format(n=idx + 1),
@@ -1725,6 +2240,7 @@ with tab1:
                         st.error(
                             f"{STR['exercicio']}{idx_l + 1}: {STR['lac_bad']}'{respostas_lacunas.get(idx_l, '')}'{STR['lac_expected']}'{lacuna['palavra_oculta']}'."
                         )
+                        falha_lacunas.append(lacuna)
                         erros_estudo.append(
                             {
                                 "etiqueta": STR["study_lac"].format(n=idx_l + 1),
@@ -1742,8 +2258,19 @@ with tab1:
                     if resumo:
                         with st.expander(STR["study_title"], expanded=True, icon=":material/school:"):
                             st.markdown(resumo)
+                            if st.button(STR["retry_m1_btn"], icon=":material/repeat:", key="btn_retry_m1"):
+                                st.session_state["dados_m1_recuperacao"] = dados_repetir_m1(
+                                    texto_m1, falha_perguntas, falha_lacunas, total
+                                )
+                                limpar_chaves_resposta_m1()
+                                st.session_state.pop("m1_submetido", None)
+                                st.rerun()
                     if (acertos_quiz + acertos_lacunas) == total:
                         celebrar()
+                        if em_recuperacao_m1:
+                            # Recuperação concluída: o recurso completo volta limpo no próximo run
+                            st.session_state.pop("dados_m1_recuperacao", None)
+                            st.session_state.pop("m1_submetido", None)
 
 # ----------------------------------------------------------
 # MÓDULO 2
@@ -1758,11 +2285,11 @@ with tab2:
         with st.spinner(STR["spin_m2"]):
             limpar_respostas_antigas(prefixos=("assoc_",), extras=("def_baralhadas",))
             st.session_state.pop("m2_submetido", None)
+            st.session_state.pop("dados_m2_recuperacao", None)
             if offline:
-                st.session_state["dados_m2"] = gerar_dados_m2_offline(tema_m2)
+                st.session_state["dados_m2"] = gerar_dados_m2_offline(tema_m2, lang=LANG)
                 st.success(STR["jogo_demo_ok"])
-                if LANG == "en":
-                    st.info(STR["demo_bank_note"])
+                registar_historico("m2", tema_m2, {"m1": st.session_state.get("dados_m1"), "m2": st.session_state["dados_m2"]})
             else:
                 prompt_m2 = f"""
                 {INSTR}
@@ -1782,6 +2309,7 @@ with tab2:
                     if not isinstance(dados_m2, dict):
                         raise ValueError(STR["bad_json"])
                     st.session_state["dados_m2"] = dados_m2
+                    registar_historico("m2", tema_m2, {"m1": st.session_state.get("dados_m1"), "m2": dados_m2})
                     st.success(STR["jogo_ok"])
                 except Exception as e:
                     st.error(f"{STR['jogo_err']}{e}")
@@ -1791,10 +2319,12 @@ with tab2:
         if is_student:
             st.info(STR["student_no_data"])
     else:
-        dados_m2 = st.session_state["dados_m2"]
+        dados_m2 = st.session_state.get("dados_m2_recuperacao") or st.session_state["dados_m2"]
+        em_recuperacao_m2 = bool(st.session_state.get("dados_m2_recuperacao"))
         if not isinstance(dados_m2, dict):
             st.error(STR["bad_game"])
             if st.button(STR["fix_data"], icon=":material/delete:", key="fix_m2"):
+                st.session_state.pop("dados_m2_recuperacao", None)
                 st.session_state.pop("dados_m2", None)
                 st.rerun()
         else:
@@ -1808,6 +2338,13 @@ with tab2:
                     defs_vistas.add(d)
                     pares_unicos.append(p)
             pares = pares_unicos
+
+            if em_recuperacao_m2 and pares:
+                st.warning(STR["retry_on"].format(falhados=len(pares), total=dados_m2.get("_total_original", len(pares))))
+                if st.button(STR["retry_exit"], icon=":material/close:", key="btn_retry_sair_m2"):
+                    st.session_state.pop("dados_m2_recuperacao", None)
+                    limpar_respostas_antigas(prefixos=("assoc_",), extras=("def_baralhadas", "m2_submetido"))
+                    st.rerun()
 
             if not pares:
                 st.warning(STR["no_pairs"])
@@ -1846,10 +2383,12 @@ with tab2:
                 if submeter_m2 or st.session_state.get("m2_submetido"):
                     acertos = 0
                     erros_estudo = []
+                    falha_pares = []
                     for idx, p in enumerate(pares):
                         d_user = respostas_assoc.get(idx, SELECAO_NULA)
                         if d_user == SELECAO_NULA:
                             st.warning(f"{STR['assoc_no_answer']}'{p['conceito']}'.")
+                            falha_pares.append(p)
                             erros_estudo.append(
                                 {
                                     "etiqueta": f"{STR['study_par'].format(n=idx + 1)}: {p['conceito']}",
@@ -1862,6 +2401,7 @@ with tab2:
                             st.success(f"Correto: '{p['conceito']}' {STR['assoc_good']}")
                         else:
                             st.error(f"{STR['assoc_bad']}'{p['conceito']}'. {STR['assoc_hint']}")
+                            falha_pares.append(p)
                             erros_estudo.append(
                                 {
                                     "etiqueta": f"{STR['study_par'].format(n=idx + 1)}: {p['conceito']}",
@@ -1874,8 +2414,18 @@ with tab2:
                     if resumo:
                         with st.expander(STR["study_title"], expanded=True, icon=":material/school:"):
                             st.markdown(resumo)
+                            if st.button(STR["retry_m2_btn"], icon=":material/repeat:", key="btn_retry_m2"):
+                                st.session_state["dados_m2_recuperacao"] = dados_repetir_m2(falha_pares, len(pares))
+                                limpar_respostas_antigas(
+                                    prefixos=("assoc_",), extras=("def_baralhadas", "m2_submetido")
+                                )
+                                st.rerun()
                     if acertos == len(pares):
                         celebrar()
+                        if em_recuperacao_m2:
+                            # Recuperação concluída: o jogo completo volta limpo no próximo run
+                            st.session_state.pop("dados_m2_recuperacao", None)
+                            st.session_state.pop("m2_submetido", None)
 
 # ----------------------------------------------------------
 # MÓDULO 3

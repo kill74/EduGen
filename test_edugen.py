@@ -14,9 +14,11 @@ SRC_PATH = Path(__file__).with_name("TrabalhoPython.py")
 
 def carregar_helpers():
     """Executa apenas o bloco de funções auxiliares do app (sem precisar de streamlit)."""
+    import copy
     import io
     import os
     import re
+    from datetime import datetime
 
     src = SRC_PATH.read_text(encoding="utf-8")
     inicio = src.index("def extrair_json_seguro")
@@ -33,7 +35,23 @@ def carregar_helpers():
         def warning(self, *args, **kwargs):
             StDummy.warnings.append(" ".join(str(a) for a in args))
 
-    ns = {"os": os, "json": json, "io": io, "re": re, "random": random, "st": StDummy()}
+        def rerun(self):
+            # como o script de teste não executa a UI, qualquer rerun é um erro de contrato
+            raise RuntimeError("ST_RERUN")
+
+    ns = {
+        "os": os,
+        "json": json,
+        "io": io,
+        "re": re,
+        "random": random,
+        "st": StDummy(),
+        "copy": copy,
+        "datetime": datetime,
+        # fpdf2 é opcional: nos testes força-se o caminho "sem lib"
+        "FPDF": None,
+        "PDF_LIB_DISPONIVEL": False,
+    }
     exec(bloco, ns)  # noqa: S102 - ficheiro local confiável
     return ns
 
@@ -46,6 +64,12 @@ ajustar_num_opcoes = H["ajustar_num_opcoes"]
 gerar_dados_m1_offline = H["gerar_dados_m1_offline"]
 gerar_dados_m2_offline = H["gerar_dados_m2_offline"]
 corrigir_por_keywords = H["corrigir_por_keywords"]
+registar_historico = H["registar_historico"]
+restaurar_do_historico = H["restaurar_do_historico"]
+dados_repetir_m1 = H["dados_repetir_m1"]
+dados_repetir_m2 = H["dados_repetir_m2"]
+exportar_recurso_pdf = H["exportar_recurso_pdf"]
+_cp1252 = H["_cp1252"]
 
 PERGUNTA_BASE = {
     "pergunta": "Q?",
@@ -295,6 +319,67 @@ class TestResumoEstudo(unittest.TestCase):
         self.assertIn("Estuda onde.", r)
 
 
+class TestRepetir(unittest.TestCase):
+    """Modo de recuperação: recursos com apenas os itens falhados (Módulos 1 e 2)."""
+
+    def test_m1_construcao(self):
+        d = dados_repetir_m1(
+            "Texto de recuperação.",
+            [dict(PERGUNTA_BASE, pergunta="Falhei esta")],
+            [{"frase": "X [___] Y", "palavra_oculta": "y"}],
+            4,
+        )
+        self.assertTrue(d["_recuperacao"])
+        self.assertEqual(d["_total_original"], 4)
+        self.assertEqual(len(d["perguntas"]), 1)
+        self.assertEqual(len(d["fill_in_the_blank"]), 1)
+        self.assertIn("Falhei esta", d["perguntas"][0]["pergunta"])
+        self.assertEqual(d["texto_explicativo"], "Texto de recuperação.")
+
+    def test_m1_itens_sao_copias_datas(self):
+        p = dict(PERGUNTA_BASE)
+        d = dados_repetir_m1("t", [p], [], 2)
+        p["pergunta"] = "MUTADO"
+        self.assertNotEqual(d["perguntas"][0]["pergunta"], "MUTADO")
+
+    def test_m2_construcao(self):
+        par = {"conceito": "C", "definicao": "D"}
+        d = dados_repetir_m2([par], 4)
+        self.assertTrue(d["_recuperacao"])
+        self.assertEqual(d["_total_original"], 4)
+        self.assertEqual(len(d["pares"]), 1)
+
+    def test_m2_itens_sao_copias_datas(self):
+        par = {"conceito": "C", "definicao": "D"}
+        d = dados_repetir_m2([par], 4)
+        par["conceito"] = "MUTADO"
+        self.assertNotEqual(d["pares"][0]["conceito"], "MUTADO")
+
+    def test_listas_vazias_nao_explodem(self):
+        d = dados_repetir_m1("t", None, None, 0)
+        self.assertTrue(d["_recuperacao"])
+        self.assertEqual(d["perguntas"], [])
+        self.assertEqual(d["fill_in_the_blank"], [])
+        d2 = dados_repetir_m2(None, 0)
+        self.assertEqual(d2["pares"], [])
+
+    def test_strings_do_modo_nos_dois_idiomas(self):
+        strings = H["STRINGS"]
+        for lang in ("pt", "en"):
+            for chave in ("retry_m1_btn", "retry_m2_btn", "retry_exit", "retry_on"):
+                self.assertTrue(strings[lang][chave].strip(), f"{lang}.{chave} vazio")
+
+    def test_placeholders_iguais_pt_en(self):
+        import re as _re
+
+        ph = lambda s: set(_re.findall(r"\{(\w+)\}", s))
+        strings = H["STRINGS"]
+        self.assertEqual(ph(strings["pt"]["retry_on"]), ph(strings["en"]["retry_on"]))
+        self.assertEqual(ph(strings["pt"]["retry_on"]), {"falhados", "total"})
+        self.assertTrue(strings["pt"]["retry_on"].startswith("Modo de recuperação"))
+        self.assertTrue(strings["en"]["retry_on"].startswith("Recovery mode"))
+
+
 class TestHero(unittest.TestCase):
     """HTML do cabeçalho hero (painel editorial + chip de estado)."""
 
@@ -529,6 +614,26 @@ class TestUX(unittest.TestCase):
         src = SRC_PATH.read_text(encoding="utf-8")
         self.assertIn('key="fix_m1"', src)
         self.assertIn('key="fix_m2"', src)
+
+    def test_fluxo_modo_recuperacao_ligado_na_ui(self):
+        src = SRC_PATH.read_text(encoding="utf-8")
+        # regerar limpa o modo de recuperação; os botões existem nos Módulos 1 e 2
+        self.assertIn('st.session_state.pop("dados_m1_recuperacao", None)', src)
+        self.assertIn('st.session_state.pop("dados_m2_recuperacao", None)', src)
+        self.assertIn('key="btn_retry_m1"', src)
+        self.assertIn('key="btn_retry_m2"', src)
+        self.assertIn('key="btn_retry_sair_m1"', src)
+        self.assertIn('key="btn_retry_sair_m2"', src)
+        # o item 4 do prompt (Bloom) só existe na geração online do Módulo 1
+        self.assertIn("4. Dificuldade cognitiva das perguntas (taxonomia de Bloom):", src)
+        self.assertIn('key="bloom_m1"', src)
+
+    def test_historico_ligado_na_ui(self):
+        src = SRC_PATH.read_text(encoding="utf-8")
+        self.assertIn("registar_historico(", src)
+        self.assertIn("restaurar_do_historico(", src)
+        self.assertIn('key=f"hist_restore_{_hi}"', src)
+        self.assertIn('historico_recursos', src)
 
     def test_dados_corrompidos_so_param_a_propria_aba(self):
         import re as _re
@@ -765,6 +870,221 @@ class TestBancosOffline(unittest.TestCase):
         d1["pares"][0]["conceito"] = "MUTADO"
         d2 = H["gerar_dados_m2_offline"]("ADN")
         self.assertNotEqual(d2["pares"][0]["conceito"], "MUTADO")
+
+
+class TestBancosEN(unittest.TestCase):
+    """Bancos demo em inglês (lang='en'): mesma estrutura validada dos PT."""
+
+    def test_bancos_en_estrutura(self):
+        for banco in (H["BANCO_M1_ADN_EN"], H["BANCO_M1_SO_EN"], H["BANCO_M1_FOTO_EN"]):
+            self.assertTrue(banco["texto_explicativo"].strip())
+            for q in banco["perguntas"]:
+                self.assertTrue(H["pergunta_valida"](q), q)
+            for lac in banco["fill_in_the_blank"]:
+                self.assertIn("[___]", lac["frase"])
+                self.assertTrue(str(lac.get("palavra_oculta", "")).strip())
+        for banco in (H["BANCO_M2_SO_EN"], H["BANCO_M2_ADN_EN"], H["BANCO_M2_FOTO_EN"]):
+            self.assertGreaterEqual(len(banco), 4)
+            for p in banco:
+                self.assertTrue(H["par_valido"](p), p)
+
+    def test_m1_adn_en(self):
+        d = gerar_dados_m1_offline("DNA", 4, lang="en")
+        self.assertNotIn("_demo_generico", d)
+        texto = d["texto_explicativo"].lower()
+        self.assertIn("deoxyribonucleic", texto)
+        self.assertIn("double helix", texto)
+        for q in d["perguntas"]:
+            self.assertEqual(len(q["opcoes"]), 4)
+            self.assertTrue(0 <= q["resposta_correta"] < 4)
+        palavras = [l["palavra_oculta"] for l in d["fill_in_the_blank"]]
+        self.assertIn("nucleotides", palavras)
+
+    def test_m1_adn_pt_fica_igual(self):
+        d = gerar_dados_m1_offline("ADN", 4)
+        self.assertNotIn("deoxyribonucleic", d["texto_explicativo"])
+        self.assertIn("dupla hélice", d["texto_explicativo"])
+
+    def test_m1_so_en_pela_keyword_en(self):
+        d = gerar_dados_m1_offline("Operating Systems and Memory Management", 4, lang="en")
+        self.assertNotIn("_demo_generico", d)
+        self.assertIn("paging", d["texto_explicativo"].lower())
+        palavras = [l["palavra_oculta"] for l in d["fill_in_the_blank"]]
+        self.assertIn("frames", palavras)
+
+    def test_m1_foto_en(self):
+        d = gerar_dados_m1_offline("Photosynthesis", 4, lang="en")
+        self.assertNotIn("_demo_generico", d)
+        self.assertIn("chlorophyll", d["texto_explicativo"].lower())
+        palavras = [l["palavra_oculta"] for l in d["fill_in_the_blank"]]
+        self.assertIn("stomata", palavras)
+
+    def test_generico_en_nao_inventa_factos(self):
+        d = gerar_dados_m1_offline("Roman Aqueducts", 2, lang="en")
+        self.assertTrue(d.get("_demo_generico"))
+        self.assertIn("Roman Aqueducts", d["texto_explicativo"])
+        self.assertIn("demo", d["texto_explicativo"].lower())
+        for q in d["perguntas"]:
+            self.assertEqual(len(q["opcoes"]), 2)
+            self.assertTrue(H["pergunta_valida"](q))
+
+    def test_generico_pt_continua_pt_por_defeito(self):
+        d = gerar_dados_m1_offline("Roman Aqueducts", 2)
+        self.assertTrue(d.get("_demo_generico"))
+        self.assertIn("Recurso DEMO", d["texto_explicativo"])
+
+    def test_m2_bancos_en(self):
+        dso = gerar_dados_m2_offline("Operating Systems", lang="en")
+        self.assertEqual(len(dso["pares"]), 4)
+        self.assertIn("virtual memory", json.dumps(dso).lower())
+        dadn = gerar_dados_m2_offline("DNA and genetics", lang="en")
+        self.assertEqual(len(dadn["pares"]), 4)
+        self.assertIn("double helix", json.dumps(dadn).lower())
+
+    def test_m2_generico_en(self):
+        d = gerar_dados_m2_offline("Roman Aqueducts", lang="en")
+        self.assertTrue(d.get("_demo_generico"))
+        self.assertIn("Roman Aqueducts", d["pares"][0]["conceito"])
+        for p in d["pares"]:
+            self.assertTrue(p["conceito"] and p["definicao"])
+
+    def test_m2_pt_por_defeito(self):
+        d = gerar_dados_m2_offline("Roman Aqueducts")
+        self.assertTrue(d.get("_demo_generico"))
+        self.assertIn("Conceito 1 de Roman Aqueducts", d["pares"][0]["conceito"])
+
+
+class TestHistorico(unittest.TestCase):
+    """Histórico de recursos da sessão: cópias profundas e restauro limpo."""
+
+    def setUp(self):
+        H["st"].session_state.clear()
+
+    def tearDown(self):
+        H["st"].session_state.clear()
+
+    def test_mais_recente_primeiro_com_tema_e_hora(self):
+        registar_historico("m1", "Tema A", {"m1": {"x": 1}, "m2": None})
+        registar_historico("m2", "Tema B", {"m1": None, "m2": {"y": 2}})
+        hist = H["st"].session_state["historico_recursos"]
+        self.assertEqual(len(hist), 2)
+        self.assertEqual(hist[0]["tema"], "Tema B")
+        self.assertEqual(hist[0]["tipo"], "m2")
+        self.assertEqual(hist[-1]["tema"], "Tema A")
+        for item in hist:
+            self.assertRegex(item["quando"], r"^\d{2}:\d{2}$")
+
+    def test_limite_max_historico(self):
+        for i in range(7):
+            registar_historico("m1", f"T{i}", {"m1": {"n": i}, "m2": None})
+        hist = H["st"].session_state["historico_recursos"]
+        self.assertEqual(len(hist), H["MAX_HISTORICO"])
+        self.assertEqual(hist[0]["tema"], "T6")  # fica o mais recente
+        self.assertEqual(hist[-1]["tema"], "T2")  # e o limite a partir do fim
+        self.assertEqual({item["tema"] for item in hist}, {"T6", "T5", "T4", "T3", "T2"})
+
+    def test_copias_profundas_isolam_edicoes(self):
+        r1 = {"texto_explicativo": "a", "perguntas": [{"o": 1}]}
+        registar_historico("m1", "T", {"m1": r1, "m2": None})
+        r1["perguntas"][0]["o"] = 999
+        r1["texto_explicativo"] = "MUTADO"
+        hist = H["st"].session_state["historico_recursos"]
+        self.assertEqual(hist[0]["m1"]["perguntas"][0]["o"], 1)
+        self.assertEqual(hist[0]["m1"]["texto_explicativo"], "a")
+
+    def test_restaurar_repoe_e_limpa_estado(self):
+        s = H["st"].session_state
+        registar_historico(
+            "m2",
+            "Tema R",
+            {
+                "m1": {"texto_explicativo": "t", "perguntas": [{"q": 1}]},
+                "m2": {"pares": [{"conceito": "c", "definicao": "d"}]},
+            },
+        )
+        item = s["historico_recursos"][0]
+        s["dados_m1"] = {"velho": True}
+        s["dados_m2"] = {"velho": True}
+        s["q_0"] = "resposta velha"
+        s["lac_1"] = "x"
+        s["assoc_2"] = "x"
+        s["m1_submetido"] = True
+        s["m2_submetido"] = True
+        s["def_baralhadas"] = ["z"]
+        s["ed_texto"] = "antigo"
+        s["dados_m1_recuperacao"] = {"_recuperacao": True}
+        s["dados_m2_recuperacao"] = {"_recuperacao": True}
+        restaurar_do_historico(item)
+        self.assertEqual(s["dados_m1"]["texto_explicativo"], "t")
+        self.assertEqual(s["dados_m2"]["pares"][0]["conceito"], "c")
+        for chave in (
+            "q_0",
+            "lac_1",
+            "assoc_2",
+            "m1_submetido",
+            "m2_submetido",
+            "def_baralhadas",
+            "ed_texto",
+            "dados_m1_recuperacao",
+            "dados_m2_recuperacao",
+        ):
+            self.assertNotIn(chave, s, f"{chave} devia ter sido limpo")
+
+    def test_restaurar_sem_m2_deleta_dados_m2(self):
+        s = H["st"].session_state
+        registar_historico("m1", "T", {"m1": {"x": 1}, "m2": None})
+        s["dados_m2"] = {"velho": True}
+        restaurar_do_historico(s["historico_recursos"][0])
+        self.assertEqual(s["dados_m1"], {"x": 1})
+        self.assertNotIn("dados_m2", s)
+
+    def test_restaurar_nao_partilha_estruturas(self):
+        s = H["st"].session_state
+        registar_historico("m1", "T", {"m1": {"perguntas": [{"k": 1}]}, "m2": None})
+        item = s["historico_recursos"][0]
+        restaurar_do_historico(item)
+        s["dados_m1"]["perguntas"][0]["k"] = 42
+        self.assertEqual(item["m1"]["perguntas"][0]["k"], 1)  # histórico intacto
+
+
+class TestExportPdf(unittest.TestCase):
+    """Sanitização cp1252 e degraded sem fpdf2 (os testes forçam PDF_LIB_DISPONIVEL=False)."""
+
+    def test_subscritos_e_setas(self):
+        self.assertEqual(_cp1252("CO₂ + H₂O -> x"), "CO2 + H2O -> x")
+        self.assertEqual(_cp1252("A ↔ B"), "A <-> B")
+
+    def test_comparadores(self):
+        self.assertEqual(_cp1252("x ≥ 5 e y ≤ 3"), "x >= 5 e y <= 3")
+
+    def test_traco_em_dash_passa_igual(self):
+        # o em dash (0x97) existe no cp1252 — passa intacto
+        self.assertEqual(_cp1252("a — b"), "a — b")
+
+    def test_carateres_desconhecidos_viram_interrogacao(self):
+        self.assertEqual(_cp1252("π∑"), "??")
+        self.assertIn("?", _cp1252("D π > C"))
+
+    def test_nao_texto_devolve_vazio(self):
+        self.assertEqual(_cp1252(""), "")
+        self.assertEqual(_cp1252(None), "")
+        self.assertEqual(_cp1252(42), "")
+
+    def test_pdf_sem_lib_devolve_none(self):
+        self.assertFalse(H["PDF_LIB_DISPONIVEL"])
+        self.assertIsNone(H["FPDF"])
+        self.assertIsNone(exportar_recurso_pdf("Tema", {"texto_explicativo": "x"}, None))
+
+    def test_pdf_sem_dados_devolve_none(self):
+        self.assertIsNone(exportar_recurso_pdf("Tema", {}, None))
+
+    def test_contrato_do_botao_pdf(self):
+        src = SRC_PATH.read_text(encoding="utf-8")
+        self.assertIn('STR["pdf_btn"]', src)
+        self.assertIn('key="btn_exportar_pdf_m1"', src)
+        self.assertIn('mime="application/pdf"', src)
+        for lang in ("pt", "en"):
+            self.assertTrue(H["STRINGS"][lang]["pdf_btn"].strip())
 
 
 class TestUIClean(unittest.TestCase):

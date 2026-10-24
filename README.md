@@ -15,15 +15,15 @@ Interativos**. O enunciado pedia que o trabalho fosse realizado **recorrendo exc
 inteligência artificial**: a conceção, a implementação e a documentação resultaram de um
 processo iterativo com modelos de IA generativa, com revisão e validação humana em cada passo.
 
-O repositório reflete esse processo — inclui a aplicação, uma suite de 130 testes unitários
+O repositório reflete esse processo — inclui a aplicação, uma suite de 165 testes unitários
 (sem dependências externas) e um smoke test end-to-end que exercita a aplicação real através
-do *AppTest* do Streamlit (12 fluxos).
+do *AppTest* do Streamlit (13 fluxos).
 
 ## Funcionalidades
 
 | Módulo | Online (Gemini) | Offline / Demo (sem chave) |
 |---|---|---|
-| Conteúdo + Quiz + Lacunas | Geração por IA a partir do tema pedido | Bancos locais (ADN, Fotossíntese, Sistemas Operativos) + template genérico |
+| Conteúdo + Quiz + Lacunas | Geração por IA a partir do tema pedido | Bancos locais (ADN, Fotossíntese, Sistemas Operativos; PT e EN) + template genérico |
 | Jogo de associação conceito ↔ definição | 4 pares gerados por IA | Pares do banco local |
 | Avaliação multimodal | Pergunta analítica sobre imagem + correção semântica por IA | Pergunta manual + correção por palavras-chave |
 
@@ -31,12 +31,20 @@ do *AppTest* do Streamlit (12 fluxos).
 
 - **Papéis** — Professor (gera, edita e valida) e Aluno (responde sem ver as respostas antes
   de submeter); a troca de papel nunca perde o conteúdo já gerado.
-- **Bilingue** — interface integral em Português e English, com paridade garantida por testes.
+- **Bilingue** — interface integral em Português e English, com paridade garantida por testes;
+  os bancos demo também existem em inglês.
+- **Nível cognitivo (Bloom)** — escolhe o nível das perguntas do quiz (Recordar, Aplicar,
+  Analisar); a geração Online alinha enunciados, opções e explicações com o nível pedido.
+- **Modo de recuperação** — ao submeter com falhas nos Módulos 1 e 2, o botão "Praticar só o
+  que falhei" carrega um recurso apenas com os itens errados, com banner e saída em qualquer
+  altura; a chegar ao 100%, o recurso completo volta automaticamente limpo.
+- **Histórico da sessão (Professor)** — os últimos 5 recursos gerados ficam na barra lateral
+  e podem ser repostos com um clique, sem perder o estado limpo das respostas.
 - **Editor offline (Professor)** — editar o texto, adicionar ou remover perguntas e lacunas e
   repor a base demo; o estado sobrevive à mudança de módulo, de papel e de idioma.
-- **Exportar/Imprimir (Professor)** — descarrega o recurso em Markdown (texto, quiz com
-  chaves de resposta, lacunas e pares do jogo) para arquivar ou converter em PDF; a impressão
-  direta (Ctrl+P) sai limpa, sem barra lateral.
+- **Exportar/Imprimir (Professor)** — descarrega o recurso em Markdown e, com o fpdf2
+  instalado, também em PDF (texto, quiz com chaves de resposta, lacunas e pares do jogo);
+  a impressão direta (Ctrl+P) sai limpa, sem barra lateral.
 - **Resumo de estudo automático** — quando há erros (quiz, lacunas, jogo de associação ou
   resposta aberta), a aplicação mostra a resposta certa, a explicação de cada falha e o que
   rever; funciona igualmente offline.
@@ -51,20 +59,24 @@ do *AppTest* do Streamlit (12 fluxos).
   usado e avisa — sem perder a geração em curso.
 - **Extração segura de JSON**: as respostas da IA são validadas antes de alimentar a
   interface; conteúdo malformado nunca bloqueia a aplicação.
+- **Codificação do PDF à prova de falhas**: um erro na exportação PDF mostra um aviso e
+  preserva o `.md`, em vez de derrubar a aba.
 
 ## Design e identidade visual
 
-A interface segue uma direção editorial própria, em vez do registo habitual de produtividade:
+A interface segue uma direção de terminal/ASCII (inspirada no Omarchy), em vez de um
+clichê de produtividade:
 
-- **Paleta** — papel quente (`#FBF9F6`), tinta (`#23201C`), violeta profundo (`#5B21B6`) e um
-  acento terracota (`#D97757`) usado com parcimónia.
-- **Tipografia** — *Fraunces* (serifa expressiva) nos títulos, *Manrope* no texto corrente e
-  *JetBrains Mono* no código.
-- **Tema** — definido em `.streamlit/config.toml`, incluindo a barra lateral em tinta profunda;
-  o que o tema não exprime vive numa folha CSS própria injetada via `st.html` (sem
-  `unsafe_allow_html`).
-- **Detalhes** — cabeçalho hero com retícula fina e brilho à deriva, abas em pílula, cartões
-  com número em serifa, micro-interações discretas e respeito por `prefers-reduced-motion`.
+- **Paleta** — superfície terminal escura (`#0f0f0f`/`#1a1a1a`), texto cinzento quente
+  (`#d4d4d4`) e acento verde (`#4ADE80`) para o ativo/selecionado; `#F87171` (vermelho) e
+  `#FBBF24` (âmbar) reservados aos pontos de estado do hero.
+- **Tipografia** — *JetBrains Mono* em tudo (texto, títulos e código), via `config.toml`.
+- **Tema** — definido em `.streamlit/config.toml` (dark, raio de borda 0, sidebar mais
+  clara); o que o tema não exprime vive numa folha CSS própria injetada via `st.html`
+  (sem `unsafe_allow_html`).
+- **Detalhes** — hero em ASCII-art com titlebar de terminal e badge de pulso, textura de
+  scanlines, abas de terminal com indicador sublinhado, métricas em verde com luz CRT,
+  glyphs `##`/`›` nos cabeçalhos do ecrã principal e respeito por `prefers-reduced-motion`.
 - **Marca** — `assets/edugen_mark.png`, gerada localmente e usada como logótipo e favicon.
 
 ## Como executar
@@ -99,17 +111,19 @@ o trabalho pelos restantes à medida que vão sendo usados.
 ## Testes
 
 ```bash
-python -m unittest test_edugen -v    # 130 testes: lógica, strings, estáticos, UI e quota
-python smoke_fluxos.py               # 12 fluxos end-to-end sobre a aplicação real (AppTest)
+python -m unittest test_edugen -v    # 165 testes: lógica, strings, estáticos, UI e quota
+python smoke_fluxos.py               # 13 fluxos end-to-end sobre a aplicação real (AppTest)
 ```
 
 Os testes correm também automaticamente no GitHub Actions (`.github/workflows/ci.yml`) a cada
 push — o badge no topo do README mostra o último resultado.
 
 A suite unitária usa apenas a biblioteca padrão e cobre a extração segura de JSON, a
-normalização de texto, a correção por palavras-chave, a quota e o fallback de modelos, a
-paridade PT/EN, a integração dos widgets e regressões da interface. O smoke test percorre os
-três módulos em modo offline, os dois papéis, os dois idiomas e o fluxo online sem chave.
+normalização de texto, a correção por palavras-chave, a quota e o fallback de modelos,
+os bancos demo PT/EN, o modo de recuperação, o histórico da sessão, a exportação
+Markdown/PDF, a paridade PT/EN e regressões da interface. O smoke test percorre os
+três módulos em modo offline, os dois papéis, os dois idiomas, o fluxo online sem
+chave e a exportação.
 
 ## Estrutura do projeto
 
@@ -120,6 +134,7 @@ smoke_fluxos.py          # smoke test end-to-end (Streamlit AppTest)
 .github/workflows/ci.yml # integração contínua: testes a cada push
 .streamlit/config.toml   # tema: tipografia, paleta e barra lateral
 .streamlit/secrets.toml.example # modelo para a chave API (modo Online)
+CHANGELOG.md             # alterações notáveis por versão (Keep a Changelog)
 LICENSE                  # MIT, com nota de uso académico
 assets/edugen_mark.png   # marca da aplicação (logótipo e favicon)
 requirements.txt         # dependências
@@ -131,6 +146,12 @@ requirements.txt         # dependências
   (escolha múltipla e palavras-chave), para que a demonstração nunca dependa da rede.
 - **Resiliência a quotas** — fallback automático entre modelos, marcação de modelos esgotados
   e mensagens de erro acionáveis na interface.
+- **PDF como dependência opcional** — com `fpdf2` instalado o exportador ganha um botão
+  `.pdf`; sem ele a app corre normalmente e esconde o botão, e um erro do gerador nunca
+  derruba a aba.
+- **Ficheiro único deliberado** — a app e a suite de testes vivem num único
+  `TrabalhoPython.py` (estrutura pedagógica do entregável): os testes isolam funções por
+  fatias de código, pelo que não existe um pacote para partir.
 - **Privacidade e simplicidade** — a folha de estilo não carrega recursos externos; apenas as
   fontes declaradas no `config.toml` são obtidas via Google Fonts.
 - **Paridade PT/EN verificada por testes** — todas as chaves de texto existem nos dois idiomas
@@ -143,8 +164,10 @@ student answers with Google Gemini, including a fully functional Offline/Demo mo
 no API key. It was developed for the **DSI — Design of Interactive Systems** course, under a
 brief that required the project to be built **exclusively with artificial intelligence**:
 conception, code and documentation were produced iteratively with generative AI models and
-reviewed by a human. The repository ships the application, 130 unit tests and a 12-flow
-end-to-end smoke test.
+reviewed by a human. The repository ships the application, 165 unit tests and a 13-flow
+end-to-end smoke test. Recent additions include a Bloom-cognitive-level selector, a
+"practice only what I missed" recovery mode, session history with one-click restore,
+demo banks in English and PDF export (fpdf2).
 
 ---
 

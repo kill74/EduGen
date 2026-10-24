@@ -5,3 +5,5 @@
 streamlit>=1.51
 google-genai>=1.0
 Pillow>=10.0
+# Exportação em PDF (opcional mas em requisitos): sem ela a app esconde o botão .pdf
+fpdf2>=2.7
