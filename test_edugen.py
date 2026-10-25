@@ -1431,5 +1431,30 @@ class TestDependencias(unittest.TestCase):
         self.assertGreaterEqual((major, minor), (1, 51))
 
 
+class TestSite(unittest.TestCase):
+    """Website de apresentação (docs/index.html): simples a par do ethos da app."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.site = (SRC_PATH.parent / "docs" / "index.html").read_text(encoding="utf-8")
+
+    def test_marca_e_conteudo(self):
+        self.assertIn("EduGen", self.site)
+        self.assertIn("██████╗", self.site)  # ASCII-art do logo, igual ao da app
+        self.assertIn("streamlit run TrabalhoPython.py", self.site)
+
+    def test_zero_script_e_sem_emojis(self):
+        import re as _re
+
+        # publicamos sem um único <script>: o mesmo ethos "sem recursos externos"
+        self.assertEqual(self.site.count("<script"), 0)
+        self.assertEqual(self.site.count("onerror"), 0)
+        self.assertEqual(
+            _re.findall(r"[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF]", self.site),
+            [],
+            "o site não devia ter emojis",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

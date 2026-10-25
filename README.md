@@ -15,7 +15,7 @@ Interativos**. O enunciado pedia que o trabalho fosse realizado **recorrendo exc
 inteligência artificial**: a conceção, a implementação e a documentação resultaram de um
 processo iterativo com modelos de IA generativa, com revisão e validação humana em cada passo.
 
-O repositório reflete esse processo — inclui a aplicação, uma suite de 177 testes unitários
+O repositório reflete esse processo — inclui a aplicação, uma suite de 179 testes unitários
 (sem dependências externas) e um smoke test end-to-end que exercita a aplicação real através
 do *AppTest* do Streamlit (13 fluxos).
 
@@ -97,6 +97,25 @@ A aplicação abre em `http://localhost:8501`. Na barra lateral:
   ser introduzida na barra lateral, em `.streamlit/secrets.toml`
   (`GEMINI_API_KEY = "..."`) ou na variável de ambiente `GEMINI_API_KEY`.
 
+## Roteiro de apresentação (5 minutos)
+
+Ordem de demonstração testada — cada passo já foi apanhado pelo smoke:
+
+1. **Arranque em modo Offline/Demo** (~20 s de pausa no hero): mostrar o banner
+   "sem chave" e como a app funciona de imediato — este é o gancho da demo.
+2. **Módulo 1**: gerar com o tema "A Fotossíntese", responder 1 pergunta certa e
+   submeter — aparecem o resumo de estudo e a métrica real. Submeter sem responder
+   para mostrar os avisos "Sem resposta" sem qualquer falha.
+3. **Modo de recuperação**: no resumo, "Praticar só o que falhei" → banner de
+   recuperação → resolver → sair para o recurso completo.
+4. **Módulo 2**: criar o jogo, errar uma e validar — pares certos/errados, depois
+   retry afunilando para a região do erro.
+5. **Editor + exportação**: no editor alterar o texto ("Guardar texto"), depois
+   "Exportar recurso" → abrir o `.md` **e** o `.pdf` gerados "fora da app".
+6. **Trocar papél e idioma**: Professor→Aluno (a geração desaparece, o conteúdo
+   fica), Português→English (a UI muda; chave e modelo não se perdem). Fecha a
+   narrativa: robustez de contratos, não truque visual.
+
 ## Deploy na nuvem (Streamlit Community Cloud)
 
 A aplicação é um ficheiro único, com dependências declaradas e arranque em modo
@@ -117,6 +136,13 @@ Notas: a app publica sem qualquer segredo e o modo Offline funciona de imediato;
 compilação demora 1-2 minutos (a Cloud instala as dependências do `requirements.txt`);
 após inatividade a app adormece e o acesso seguinte reconstrói-a automaticamente.
 
+## Website
+
+A página de apresentação vive em [`docs/index.html`](docs/index.html) — um único ficheiro
+HTML/CSS na linguagem visual da app (terminal, ASCII-art, zero `<script>`) e serve no
+GitHub Pages em *Settings → Pages → Build from branch → `master` / `docs`*
+([https://kill74.github.io/EduGen/](https://kill74.github.io/EduGen/), logo que ativado).
+
 ## Modelos e quota
 
 Os modelos recomendados para o tier gratuito aparecem primeiro; modelos Pro/preview vão para
@@ -131,7 +157,7 @@ o trabalho pelos restantes à medida que vão sendo usados.
 ## Testes
 
 ```bash
-python -m unittest test_edugen -v    # 177 testes: lógica, strings, estáticos, UI e quota
+python -m unittest test_edugen -v    # 179 testes: lógica, strings, estáticos, UI e quota
 python smoke_fluxos.py               # 13 fluxos end-to-end sobre a aplicação real (AppTest)
 ```
 
@@ -151,6 +177,7 @@ chave e a exportação.
 TrabalhoPython.py        # aplicação Streamlit (lógica + interface)
 test_edugen.py           # suite de testes unitários (só biblioteca padrão)
 smoke_fluxos.py          # smoke test end-to-end (Streamlit AppTest)
+docs/index.html          # website de apresentação (GitHub Pages, /docs)
 .github/workflows/ci.yml # integração contínua: testes a cada push
 .streamlit/config.toml   # tema: tipografia, paleta e barra lateral
 .streamlit/secrets.toml.example # modelo para a chave API (modo Online)
@@ -184,7 +211,7 @@ student answers with Google Gemini, including a fully functional Offline/Demo mo
 no API key. It was developed for the **DSI — Design of Interactive Systems** course, under a
 brief that required the project to be built **exclusively with artificial intelligence**:
 conception, code and documentation were produced iteratively with generative AI models and
-reviewed by a human. The repository ships the application, 177 unit tests and a 13-flow
+reviewed by a human. The repository ships the application, 179 unit tests and a 13-flow
 end-to-end smoke test. Recent additions include a Bloom-cognitive-level selector, a
 "practice only what I missed" recovery mode, session history with one-click restore,
 demo banks in English and PDF export (fpdf2).
