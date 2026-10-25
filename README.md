@@ -15,7 +15,7 @@ Interativos**. O enunciado pedia que o trabalho fosse realizado **recorrendo exc
 inteligência artificial**: a conceção, a implementação e a documentação resultaram de um
 processo iterativo com modelos de IA generativa, com revisão e validação humana em cada passo.
 
-O repositório reflete esse processo — inclui a aplicação, uma suite de 175 testes unitários
+O repositório reflete esse processo — inclui a aplicação, uma suite de 177 testes unitários
 (sem dependências externas) e um smoke test end-to-end que exercita a aplicação real através
 do *AppTest* do Streamlit (13 fluxos).
 
@@ -111,7 +111,7 @@ o trabalho pelos restantes à medida que vão sendo usados.
 ## Testes
 
 ```bash
-python -m unittest test_edugen -v    # 175 testes: lógica, strings, estáticos, UI e quota
+python -m unittest test_edugen -v    # 177 testes: lógica, strings, estáticos, UI e quota
 python smoke_fluxos.py               # 13 fluxos end-to-end sobre a aplicação real (AppTest)
 ```
 
@@ -164,7 +164,7 @@ student answers with Google Gemini, including a fully functional Offline/Demo mo
 no API key. It was developed for the **DSI — Design of Interactive Systems** course, under a
 brief that required the project to be built **exclusively with artificial intelligence**:
 conception, code and documentation were produced iteratively with generative AI models and
-reviewed by a human. The repository ships the application, 175 unit tests and a 13-flow
+reviewed by a human. The repository ships the application, 177 unit tests and a 13-flow
 end-to-end smoke test. Recent additions include a Bloom-cognitive-level selector, a
 "practice only what I missed" recovery mode, session history with one-click restore,
 demo banks in English and PDF export (fpdf2).

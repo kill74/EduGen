@@ -7,7 +7,6 @@ import json
 import os
 import random
 import re
-import unicodedata
 from datetime import datetime
 
 import streamlit as st
@@ -2007,6 +2006,10 @@ with tab1:
         with st.spinner(STR["spin_m1"]):
             limpar_respostas_antigas(prefixos=("q_", "lac_"), extras=("m1_submetido",))
             st.session_state.pop("dados_m1_recuperacao", None)
+            # O session_state da textarea (ed_texto) sobrepõe-se ao novo recurso:
+            # sem este pop, "Guardar texto" escrevia o texto antigo por cima dos
+            # dados acabados de gerar.
+            st.session_state.pop("ed_texto", None)
             if offline:
                 dados_m1 = gerar_dados_m1_offline(tema_m1, num_opcoes, lang=LANG)
                 st.session_state["dados_m1"] = dados_m1
@@ -2160,16 +2163,26 @@ with tab1:
                 key="btn_exportar_m1",
             )
             if PDF_LIB_DISPONIVEL:
-                try:
-                    pdf_bytes = exportar_recurso_pdf(
-                        tema_exp,
-                        dados_exp,
-                        pares_exp if isinstance(pares_exp, list) else None,
-                    )
-                except Exception:
-                    # Um erro no PDF não pode partir a aba; o .md continua disponível
-                    pdf_bytes = None
-                    st.caption(STR["pdf_falhou"])
+                # O exportador renderiza a cada rerun; reconstruir o PDF em cada
+                # interação desperdiça CPU. Assinatura md5 do próprio .md: se o
+                # recurso não mudou, reutiliza os bytes em cache.
+                assinatura_pdf = hashlib.md5(recurso_md.encode("utf-8")).hexdigest()
+                em_cache = st.session_state.get("_pdf_cache_m1")
+                if isinstance(em_cache, tuple) and len(em_cache) == 2 and em_cache[0] == assinatura_pdf:
+                    pdf_bytes = em_cache[1]
+                else:
+                    try:
+                        pdf_bytes = exportar_recurso_pdf(
+                            tema_exp,
+                            dados_exp,
+                            pares_exp if isinstance(pares_exp, list) else None,
+                        )
+                        st.session_state["_pdf_cache_m1"] = (assinatura_pdf, pdf_bytes)
+                    except Exception:
+                        st.session_state.pop("_pdf_cache_m1", None)
+                        # Um erro no PDF não pode partir a aba; o .md continua disponível
+                        pdf_bytes = None
+                        st.caption(STR["pdf_falhou"])
                 if pdf_bytes:
                     st.download_button(
                         STR["pdf_btn"],

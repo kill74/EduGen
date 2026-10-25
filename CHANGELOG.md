@@ -35,11 +35,18 @@ editor, recuperação, histórico e exportações) com correções e testes de r
   não definiu palavras-chave, o Aluno passava a mensagem "Defina as palavras-chave
   esperadas", que só o Professor pode cumprir; agora recebe instrução para pedir ao
   professor (chave nova `ask_kw_student`, paridade PT/EN verificada).
+- **Texto do editor sobrevivia à regeneração** — o `session_state` da textarea
+  (`ed_texto`) sobrepõe-se ao `value=`: gerar um novo recurso (`btn_m1`) não limpava
+  esse estado e "Guardar texto" reescrevia o texto **antigo** por cima do recurso
+  novo. A regeneração limpa agora o editor de texto.
 
 ### Alterado
 
-- Suíte alargada para 175 testes unitários (+10): dedupe de opções, transliteração
-  NFKD do PDF, tema do recurso e 4 verificações estáticas novas.
+- Suíte alargada para 177 testes unitários (+12): dedupe de opções, transliteração
+  NFKD do PDF, tema do recurso, editor stale e 6 verificações estáticas novas.
+- **PDF em cache por assinatura** — o exportador renderiza em cada rerun; o PDF só
+  se reconstrói quando o conteúdo muda (md5 do próprio `.md`), em vez de a cada
+  interação com qualquer widget do Módulo 1.
 
 ## [1.0.0] — 2026-10-24
 

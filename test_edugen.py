@@ -587,6 +587,20 @@ class TestEstatico(unittest.TestCase):
         # o Aluno não pode "definir palavras-chave": recebe instrução para pedir ao professor
         self.assertIn('STR["ask_kw_first"] if not is_student else STR["ask_kw_student"]', self.src)
 
+    def test_regenerar_limpa_editor_texto(self):
+        # o session_state da textarea sobrepõe-se ao value=; sem pop, "Guardar
+        # texto" reescrevia o texto antigo por cima do recurso novo
+        self.assertGreaterEqual(
+            self.src.count('st.session_state.pop("ed_texto", None)'), 2
+        )
+
+    def test_pdf_cache_por_assinatura(self):
+        # o exportador renderiza a cada rerun: o PDF só se reconstrói quando o
+        # conteúdo muda (md5 do .md reutiliza hashlib, já sem import morto)
+        self.assertGreaterEqual(self.src.count("import hashlib"), 1)
+        self.assertIn("hashlib.md5(", self.src)
+        self.assertIn("_pdf_cache_m1", self.src)
+
 
 class TestUX(unittest.TestCase):
     def test_strings_paridade_pt_en(self):
