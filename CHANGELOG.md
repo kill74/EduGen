@@ -5,13 +5,19 @@ Todas as alterações notáveis deste projeto ficam documentadas neste ficheiro.
 O formato é inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
 
-## [Não lançado]
+## [1.1.0] — 2026-10-25
 
-Auditoria completa "à prova de bugs": revisão de todo o fluxo (offline + online,
-editor, recuperação, histórico e exportações) com correções e testes de regressão.
+Auditoria completa "à prova de bugs" (2 passagens), website de apresentação e
+documentação de deploy. Suíte final: 179 testes.
 
 ### Adicionado
 
+- **Website de apresentação** — `docs/index.html`: página única HTML/CSS na linguagem
+  visual da app (terminal, ASCII-art como o hero, zero `<script>`, sem emojis),
+  publicável no GitHub Pages pela pasta `/docs`; +2 testes estáticos (marca presente,
+  zero scripts, sem emojis).
+- **Roteiro de apresentação no README** — ordem de demonstração de 5 minutos, com os
+  fluxos exatos a mostrar ao professor.
 - **Secção "Deploy na nuvem" no README** — passo-a-passo da publicação no Streamlit
   Community Cloud (URL pública, modo Offline de arranque, segredo opcional para o modo Online).
 
@@ -47,11 +53,12 @@ editor, recuperação, histórico e exportações) com correções e testes de r
 
 ### Alterado
 
-- Suíte alargada para 177 testes unitários (+12): dedupe de opções, transliteração
-  NFKD do PDF, tema do recurso, editor stale e 6 verificações estáticas novas.
+- Suíte: 177 testes nas auditorias (+12) e +2 estáticos do website = **179 no total**.
 - **PDF em cache por assinatura** — o exportador renderiza em cada rerun; o PDF só
   se reconstrói quando o conteúdo muda (md5 do próprio `.md`), em vez de a cada
   interação com qualquer widget do Módulo 1.
+- **Higiene de imports** — `hashlib` passou a ser usado pela assinatura do PDF
+  (antes era um import morto); `unicodedata` saiu do topo do módulo (uso só local).
 
 ## [1.0.0] — 2026-10-24
 
