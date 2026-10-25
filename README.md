@@ -17,15 +17,16 @@ Interativos**. O enunciado pedia que o trabalho fosse realizado **recorrendo exc
 inteligência artificial**: a conceção, a implementação e a documentação resultaram de um
 processo iterativo com modelos de IA generativa, com revisão e validação humana em cada passo.
 
-O repositório reflete esse processo — inclui a aplicação, uma suite de 179 testes unitários
+O repositório reflete esse processo — inclui a aplicação, uma suite de 189 testes unitários
 (sem dependências externas) e um smoke test end-to-end que exercita a aplicação real através
-do *AppTest* do Streamlit (13 fluxos).
+do *AppTest* do Streamlit (14 fluxos).
 
 ## Funcionalidades
 
 | Módulo | Online (Gemini) | Offline / Demo (sem chave) |
 |---|---|---|
 | Conteúdo + Quiz + Lacunas | Geração por IA a partir do tema pedido | Bancos locais (ADN, Fotossíntese, Sistemas Operativos; PT e EN) + template genérico |
+| Texto colado → quiz (Módulo 1) | Quiz e lacunas gerados por IA a partir do texto introduzido | Heurística local: termos do próprio texto, sem factos inventados |
 | Jogo de associação conceito ↔ definição | 4 pares gerados por IA | Pares do banco local |
 | Avaliação multimodal | Pergunta analítica sobre imagem + correção semântica por IA | Pergunta manual + correção por palavras-chave |
 
@@ -118,6 +119,9 @@ Ordem de demonstração testada — cada passo já foi apanhado pelo smoke:
    fica), Português→English (a UI muda; chave e modelo não se perdem). Fecha a
    narrativa: robustez de contratos, não truque visual.
 
+Extra (se sobrar tempo): na origem do Módulo 1, trocar para "A partir de texto colado", colar
+um parágrafo de um manual e gerar — mostra a heurística local texto → lacunas/quiz, sem IA.
+
 ## Deploy na nuvem (Streamlit Community Cloud)
 
 A aplicação é um ficheiro único, com dependências declaradas e arranque em modo
@@ -159,8 +163,8 @@ o trabalho pelos restantes à medida que vão sendo usados.
 ## Testes
 
 ```bash
-python -m unittest test_edugen -v    # 179 testes: lógica, strings, estáticos, UI e quota
-python smoke_fluxos.py               # 13 fluxos end-to-end sobre a aplicação real (AppTest)
+python -m unittest test_edugen -v    # 189 testes: lógica, strings, texto->quiz, estáticos, UI e quota
+python smoke_fluxos.py               # 14 fluxos end-to-end sobre a aplicação real (AppTest)
 ```
 
 Os testes correm também automaticamente no GitHub Actions (`.github/workflows/ci.yml`) a cada
@@ -213,10 +217,11 @@ student answers with Google Gemini, including a fully functional Offline/Demo mo
 no API key. It was developed for the **DSI — Design of Interactive Systems** course, under a
 brief that required the project to be built **exclusively with artificial intelligence**:
 conception, code and documentation were produced iteratively with generative AI models and
-reviewed by a human. The repository ships the application, 179 unit tests and a 13-flow
+reviewed by a human. The repository ships the application, 189 unit tests and a 14-flow
 end-to-end smoke test. Recent additions include a Bloom-cognitive-level selector, a
 "practice only what I missed" recovery mode, session history with one-click restore,
-demo banks in English and PDF export (fpdf2).
+demo banks in English, PDF export (fpdf2) and a pasted-text mode that builds gap-filling
+and multiple-choice exercises from the teacher's own class text.
 
 ---
 

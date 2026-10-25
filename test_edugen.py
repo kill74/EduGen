@@ -615,7 +615,8 @@ class TestUX(unittest.TestCase):
         orfas = [
             k
             for k in H["STRINGS"]["pt"]
-            if not _re.search(rf"STR\[['\"]({_re.escape(k)})['\"]\]", src)
+            # uso legítimo nos dois acessos: literal STR["k"] e dinâmico STRINGS[lang]["k"]
+            if not _re.search(rf"STR(?:INGS\[[^\[\]]*\])?\[['\"]({_re.escape(k)})['\"]\]", src)
         ]
         self.assertEqual(orfas, [], f"chaves STRINGS sem qualquer uso: {orfas}")
 
@@ -1454,6 +1455,114 @@ class TestSite(unittest.TestCase):
             [],
             "o site não devia ter emojis",
         )
+
+
+class TestTextoParaQuiz(unittest.TestCase):
+    """Módulo 1 a partir de texto colado: heurística local honesta, sem IA."""
+
+    @classmethod
+    def setUpClass(cls):
+        # staticmethod: as funções de H, guardadas na classe, não podem virar métodos
+        # (self entraria como 1.º argumento e deslocava num_opcoes/lang)
+        cls.g = staticmethod(H["gerar_dados_m1_de_texto"])
+        cls.valida = staticmethod(H["pergunta_valida"])
+        cls.stop = H["_STOPWORDS_TEXTO"]
+        cls.strings = H["STRINGS"]
+        cls.texto_pt = (
+            "A fotossíntese transforma energia luminosa em energia química. "
+            "As plantas usam a clorofila para absorver a luz solar. "
+            "O dióxido de carbono e a água convertem-se em glicose e oxigénio. "
+            "A clorofila habita os cloroplastos das células vegetais. "
+            "Os estomas controlam a troca de gases nas folhas."
+        )
+
+    def test_texto_curto_levanta_erro(self):
+        with self.assertRaises(ValueError):
+            self.g("Frase fina.", "X", 4)
+        with self.assertRaises(ValueError):
+            self.g("Uma frase muito comprida mas solitária, sem companhia nenhuma no parágrafo.", "X", 4)
+
+    def test_estrutura_valida_do_recurso(self):
+        dados = self.g(self.texto_pt, "Fotossíntese", 4)
+        self.assertEqual(dados["_tema"], "Fotossíntese")
+        self.assertGreaterEqual(len(dados["perguntas"]), 2)
+        self.assertGreaterEqual(len(dados["fill_in_the_blank"]), 2)
+        for q in dados["perguntas"]:
+            self.assertTrue(self.valida(q))
+            self.assertLessEqual(len(q["opcoes"]), 4)
+
+    def test_resposta_correta_e_explicacao_ancoradas_no_texto(self):
+        dados = self.g(self.texto_pt, "Fotossíntese", 4)
+        for q in dados["perguntas"]:
+            correta = q["opcoes"][q["resposta_correta"]]
+            self.assertIn(correta, self.texto_pt)  # termo vem do texto, sem inventados
+            self.assertIn(self.strings["pt"]["texto_m1_pergunta"], str(q["pergunta"]))
+            self.assertIn(self.strings["pt"]["texto_m1_explic"], str(q["explicacao"]))
+            # passagem reconstruída (termo no lugar do [___]) == frase integral citada
+            passagem = str(q["pergunta"]).split("«", 1)[1].rsplit("»", 1)[0]
+            citada = str(q["explicacao"]).split("«", 1)[1].rsplit("»", 1)[0]
+            self.assertEqual(passagem.replace("[___]", correta).lower(), citada.lower())
+
+    def test_distratores_sao_termos_do_texto(self):
+        import re as _re
+
+        dados = self.g(self.texto_pt, "Fotossíntese", 4)
+        termos = {w.lower() for w in _re.findall(r"[^\W\d_]{4,}", self.texto_pt)}
+        for q in dados["perguntas"]:
+            correta = q["opcoes"][q["resposta_correta"]]
+            for op in q["opcoes"]:
+                if op != correta:
+                    self.assertIn(str(op).lower(), termos)
+
+    def test_lacunas_marcador_unico_e_termos_unicos(self):
+        dados = self.g(self.texto_pt, "Fotossíntese", 4)
+        vistas = set()
+        for lac in dados["fill_in_the_blank"]:
+            frase, palavra = lac["frase"], lac["palavra_oculta"]
+            self.assertEqual(frase.count("[___]"), 1)
+            self.assertIn(palavra.lower(), self.texto_pt.lower())
+            self.assertGreaterEqual(len(palavra), 4)
+            self.assertNotIn(palavra.lower(), self.stop)
+            self.assertNotIn(palavra.lower(), vistas)
+            vistas.add(palavra.lower())
+
+    def test_idioma_en_usa_strings_en_e_sem_stopwords(self):
+        texto_en = (
+            "Photosynthesis converts light energy into chemical energy inside plants. "
+            "Chlorophyll inside the leaves absorbs sunlight during the daytime hours. "
+            "Carbon dioxide combines with water inside chloroplasts producing glucose. "
+            "Stomata regulate gas exchange across the surface of leaves."
+        )
+        dados = self.g(texto_en, "Photosynthesis", 4, lang="en")
+        self.assertTrue(dados["perguntas"] and dados["fill_in_the_blank"])
+        for q in dados["perguntas"]:
+            self.assertIn(self.strings["en"]["texto_m1_pergunta"], str(q["pergunta"]))
+            self.assertIn(self.strings["en"]["texto_m1_explic"], str(q["explicacao"]))
+        for lac in dados["fill_in_the_blank"]:
+            self.assertNotIn(lac["palavra_oculta"].lower(), self.stop)
+
+    def test_tema_vazio_deriva_da_primeira_frase(self):
+        dados = self.g(self.texto_pt, "   ", 4)
+        self.assertTrue(str(dados["_tema"]).strip())
+        self.assertLessEqual(len(dados["_tema"]), 80)
+
+    def test_sem_enxerto_de_opcoes_fantasma(self):
+        # diferente do banco: no texto colado não há "Opção adicional" a preencher omissões
+        dados = self.g(self.texto_pt, "Fotossíntese", 6)
+        for q in dados["perguntas"]:
+            self.assertFalse(any("Opção adicional" in str(o) for o in q["opcoes"]))
+
+    def test_esquema_m1_formata_sem_colisao(self):
+        # o schema partilhado pelas duas vias Online formata sem colidir com as chavetas do JSON
+        esquema = H["ESQUEMA_M1"].format(n_opc=4, n_max=3, nivel="X", bloom="Y")
+        self.assertNotIn("{n_opc}", esquema)
+        self.assertIn("'[___]'", esquema)
+        self.assertIn('"resposta_correta"', esquema)
+
+    def test_termos_dos_quiz_unicos(self):
+        dados = self.g(self.texto_pt, "Fotossíntese", 4)
+        corretas = [q["opcoes"][q["resposta_correta"]].lower() for q in dados["perguntas"]]
+        self.assertEqual(len(set(corretas)), len(corretas))
 
 
 if __name__ == "__main__":

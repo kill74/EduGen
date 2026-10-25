@@ -5,6 +5,28 @@ Todas as alterações notáveis deste projeto ficam documentadas neste ficheiro.
 O formato é inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.2.0] — 2026-10-25
+
+Nova forma de gerar no Módulo 1: **texto colado → quiz**. Suíte: 189 testes, 14 fluxos smoke.
+
+### Adicionado
+
+- **"A partir de texto colado" (Módulo 1)** — o professor cola o texto da aula (artigo, secção
+  de manual, apontamentos) e a app constrói o recurso a partir dele:
+  - **Offline**: heurística local honesta — lacunas a partir de frases do próprio texto com o
+    termo oculto, e quiz com o termo certo entre outros termos do mesmo texto; nada de factos
+    inventados, com banner a etiquetar "heurística, sem IA". O tema funciona apenas como título
+    do recurso; texto demasiado curto (menos de 3 frases úteis) devolve um erro claro sem gerar
+    nada (coberto pelo fluxo 14 do smoke).
+  - **Online**: o Gemini recebe o texto base e devolve apenas a versão pedagógica organizada e
+    as perguntas — schema JSON partilhado pela constante `ESQUEMA_M1`, sem prompts duplicados.
+- Roteiro de apresentação: passo extra opcional "texto colado" na demo de 5 minutos.
+
+### Alterado
+
+- Suíte: 189 testes (179 na v1.1.0; +10 na heurística texto→quiz e no esquema partilhado) e
+  smoke com 14 fluxos.
+
 ## [1.1.0] — 2026-10-25
 
 Auditoria completa "à prova de bugs" (2 passagens), website de apresentação e

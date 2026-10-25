@@ -819,6 +819,137 @@ def gerar_dados_m1_offline(tema: str, num_opcoes: int, lang: str = "pt") -> dict
     }
 
 
+# ---- Gerador offline Módulo 1 a partir de texto colado (heurística, sem IA) ----
+# Palavras vazias (PT e EN): nunca valem como termo de lacuna/quiz — são só ligação.
+_STOPWORDS_TEXTO = {
+    # PT
+    "para", "como", "mais", "este", "esta", "esse", "essa", "sobre",
+    "entre", "pelo", "pela", "pelos", "pelas", "também", "então", "assim",
+    "após", "até", "quando", "onde", "pode", "podem", "porque", "porquê",
+    "entretanto", "contudo", "todavia", "enquanto", "porém", "cujo", "cuja",
+    "dessas", "desses", "destas", "destes", "aquela", "aquele",
+    # EN
+    "this", "that", "these", "those", "with", "from", "into", "onto",
+    "about", "their", "there", "here", "where", "when", "then", "than",
+    "them", "they", "have", "been", "being", "will", "would", "could",
+    "should", "must", "shall", "very", "much", "many", "some", "most",
+    "over", "under", "between", "through", "while", "using", "used",
+    "uses", "also", "such", "each", "other", "another", "same", "even",
+    "only", "just", "like", "which", "whose", "hence", "therefore",
+    "thus", "both", "more", "less", "after", "before", "during",
+    "without", "within", "because", "since", "until", "either",
+    "neither", "rather", "quite", "upon", "once", "inside", "across",
+}
+
+
+def _frases_de_texto(texto: str) -> list:
+    """Divide texto corrido em frases utilizáveis: quebra por pontuação final e conserva só frases com 6+ palavras."""
+    corrido = re.sub(r"\s+", " ", str(texto or "").strip())
+    partes = re.split(r"(?<=[.!?])\s+", corrido)
+    return [p.strip(" ;,") for p in partes if len(p.split()) >= 6]
+
+
+def _termos_frase(frase: str, freq: dict) -> list:
+    """Termos da frase (4+ letras, fora de stopwords) ordenados por distintividade: frequência no texto e, depois, comprimento."""
+    contempladas = set()
+    cand = []
+    for found in re.finditer(r"[^\W\d_]{4,}", frase):
+        palavra = found.group(0)
+        baixa = palavra.lower()
+        if baixa in _STOPWORDS_TEXTO or baixa in contempladas:
+            continue
+        contempladas.add(baixa)
+        cand.append((freq.get(baixa, 0), len(palavra), palavra))
+    cand.sort(reverse=True)
+    return [c[2] for c in cand]
+
+
+def gerar_dados_m1_de_texto(texto: str, tema: str, num_opcoes: int = 4, lang: str = "pt") -> dict:
+    """Módulo 1 sem IA a partir do texto do professor: lacunas e quiz derivam de frases do próprio texto.
+
+    Heurística local e honesta: usa apenas frases e termos do texto colado — não inventa factos.
+    Levanta ValueError quando o texto não tem material mínimo (menos de 3 frases ou pouco conteúdo).
+    """
+    corrido = re.sub(r"\s+", " ", str(texto or "").strip())
+    frases = _frases_de_texto(corrido)
+    freq = {}
+    for found in re.finditer(r"[^\W\d_]{4,}", corrido):
+        baixa = found.group(0).lower()
+        if baixa not in _STOPWORDS_TEXTO:
+            freq[baixa] = freq.get(baixa, 0) + 1
+
+    # Um termo por frase (o mais distintivo ainda não usado) — cada exercício fica único
+    escolhas = []
+    usados = set()
+    for idx, frase in enumerate(frases):
+        for termo in _termos_frase(frase, freq):
+            if termo.lower() in usados:
+                continue
+            usados.add(termo.lower())
+            escolhas.append((termo, idx))
+            break
+    if len(frases) < 3 or len(escolhas) < 2:
+        raise ValueError(STRINGS[lang]["texto_m1_curto"])
+
+    tema = (tema or "").strip() or " ".join(frases[0].split()[:6])
+
+    # --- Lacunas: até 3 frases do próprio texto, um termo por frase —
+    # escrever a palavra é relembrar; escolher entre opções é reconhecer.
+    lacunas = []
+    usadas_lac = set()
+    for termo, idx in escolhas:
+        if len(lacunas) >= 3:
+            break
+        marcada = re.sub(re.escape(termo), "[___]", frases[idx], count=1, flags=re.IGNORECASE)
+        if marcada == frases[idx]:
+            continue
+        lacunas.append({"frase": marcada, "palavra_oculta": termo})
+        usadas_lac.add(idx)
+
+    # --- Quiz: até 5 perguntas; distratores são outros termos do próprio texto.
+    # Percorre do fim para o início para, com material escasso, variar as frases em vez de repetir as lacunas.
+    perguntas = []
+    for termo, idx in reversed(escolhas):
+        if len(perguntas) >= 5:
+            break
+        marcada = re.sub(re.escape(termo), "[___]", frases[idx], count=1, flags=re.IGNORECASE)
+        if marcada == frases[idx]:
+            continue
+        erradas = []
+        vistos = {normalizar(termo, remover_acentos=True)}
+        for outro, _idx_outro in escolhas:
+            n_outro = normalizar(outro, remover_acentos=True)
+            if n_outro in vistos:
+                continue
+            vistos.add(n_outro)
+            erradas.append(outro)
+            if len(erradas) >= max(1, int(num_opcoes or 4) - 1):
+                break
+        if not erradas:
+            continue
+        opcoes = [termo] + erradas
+        random.shuffle(opcoes)
+        perguntas.append(
+            {
+                "pergunta": f"{STRINGS[lang]['texto_m1_pergunta']} «{marcada}»",
+                "opcoes": opcoes,
+                "resposta_correta": opcoes.index(termo),
+                "explicacao": f"{STRINGS[lang]['texto_m1_explic']}: «{frases[idx]}»",
+            }
+        )
+
+    # Texto explicativo = o próprio texto colado, limpo por parágrafos (nada de factos inventados)
+    paragrafos = [re.sub(r"[ \t]+", " ", p).strip() for p in re.split(r"\n[ \t]*\n+", str(texto or ""))]
+    paragrafos = [p for p in paragrafos if p]
+
+    return {
+        "texto_explicativo": "\n\n".join(paragrafos) or corrido,
+        "perguntas": perguntas,
+        "fill_in_the_blank": lacunas,
+        "_tema": tema,
+    }
+
+
 # ---- Banco offline Módulo 2 ----
 BANCO_M2_SO = [
     {
@@ -1295,6 +1426,17 @@ STRINGS = {
         "m1_header": "1. Geração de Conteúdo Didático e Questionário Adaptável",
         "tema_label": "Tema ou Tópico da Aula:",
         "num_opc_label": "Número de opções por pergunta:",
+        "origem_m1": "Origem do conteúdo (Módulo 1):",
+        "origem_m1_tema": "A partir do tema",
+        "origem_m1_texto": "A partir de texto colado",
+        "texto_m1_label": "Texto da aula (colar):",
+        "texto_m1_help": "O recurso é construído a partir deste texto: as lacunas e o quiz usam termos do próprio texto, sem IA e sem factos inventados. No modo Online, só os primeiros 6000 carateres são enviados ao modelo.",
+        "texto_m1_falta": "Cole o texto da aula antes de gerar (está selecionada a origem «A partir de texto colado»).",
+        "texto_m1_curto": "O texto é demasiado curto para construir exercícios: inclui pelo menos três frases completas, com palavras de conteúdo.",
+        "demo_texto_ok": "Recurso construído localmente a partir do teu texto (heurística, sem IA): lacunas e quiz derivam de frases do próprio texto.",
+        "tema_titulo_m1": "Neste modo, o tema usa-se apenas como título do recurso (um título curto funciona melhor).",
+        "texto_m1_pergunta": "Conclui esta passagem do texto:",
+        "texto_m1_explic": "Passagem integral do texto",
         "btn_gen_m1": "Gerar Recurso Didático Completo",
         "spin_m1": "A gerar texto explicativo, quiz e exercícios de lacunas...",
         "demo_generic_ok": "Recurso demo gerado (offline). Para conteúdo factual escolha 'ADN' ou 'Sistemas Operativos', ou use o modo Online.",
@@ -1468,6 +1610,17 @@ STRINGS = {
         "m1_header": "1. Teaching Content Generation and Adaptive Quiz",
         "tema_label": "Lesson Theme or Topic:",
         "num_opc_label": "Number of options per question:",
+        "origem_m1": "Content source (Module 1):",
+        "origem_m1_tema": "From a topic",
+        "origem_m1_texto": "From pasted text",
+        "texto_m1_label": "Class text (paste):",
+        "texto_m1_help": "The resource is built from this text: the gap exercises and the quiz take their terms from the text itself — no AI, no invented facts. In Online mode, only the first 6000 characters are sent to the model.",
+        "texto_m1_falta": "Paste the class text before generating (the 'From pasted text' source is selected).",
+        "texto_m1_curto": "The text is too short to build exercises: include at least three complete sentences with content-bearing words.",
+        "demo_texto_ok": "Resource built locally from your text (heuristic, no AI): the gaps and the quiz derive from sentences of the text itself.",
+        "tema_titulo_m1": "In this mode, the topic is only the resource title (a short title works best).",
+        "texto_m1_pergunta": "Complete this passage from the text:",
+        "texto_m1_explic": "Full passage from the text",
         "btn_gen_m1": "Generate Full Teaching Resource",
         "spin_m1": "Generating explanatory text, quiz and gap exercises...",
         "demo_generic_ok": "Demo resource generated (offline). For factual content choose 'ADN' or 'Sistemas Operativos', or use Online mode.",
@@ -1614,6 +1767,34 @@ STRINGS = {
 LANG = "pt"
 STR = STRINGS[LANG]
 INSTR = STR["instr"]
+
+# Estrutura JSON partilhada pelos dois caminhos de geração do Módulo 1
+# (a partir do tema e a partir do texto colado) — fonte única, sem deriva entre prompts.
+# Chavetas dobradas para sobreviver ao .format nos pontos de uso.
+ESQUEMA_M1 = """
+2. 'perguntas': Uma lista de 2 perguntas de escolha múltipla. Cada pergunta deve ter exatamente {n_opc} opções de resposta, um índice de 'resposta_correta' (inteiro 0 a {n_max}) e uma 'explicacao' da solução.
+3. 'fill_in_the_blank': 2 frases com uma lacuna marcada como '[___]', a palavra correta para preencher a lacuna ('palavra_oculta') e o contexto.
+4. Dificuldade cognitiva das perguntas (taxonomia de Bloom): '{nivel}' — {bloom}
+
+Responde EXCLUSIVAMENTE em formato JSON válido com a seguinte estrutura:
+{{
+  "texto_explicativo": "...",
+  "perguntas": [
+    {{
+      "pergunta": "...",
+      "opcoes": ["...", "..."],
+      "resposta_correta": 0,
+      "explicacao": "..."
+    }}
+  ],
+  "fill_in_the_blank": [
+    {{
+      "frase": "O ADN é composto por [___] que contêm as bases nitrogenadas.",
+      "palavra_oculta": "nucleótidos"
+    }}
+  ]
+}}
+"""
 
 
 # ---- Modelos Gemini: recomendados + lista real obtida da chave ----
@@ -1985,6 +2166,17 @@ with tab1:
     with col_input2:
         num_opcoes = st.slider(STR["num_opc_label"], min_value=2, max_value=6, value=4, key="num_opc")
 
+    # Origem do conteúdo (Módulo 1): tema (IA ou banco local) ou texto colado do professor
+    origem_m1 = "tema"
+    if not is_student:
+        origem_m1 = st.radio(
+            STR["origem_m1"],
+            ("tema", "texto"),
+            format_func=lambda modo: STR["origem_m1_tema"] if modo == "tema" else STR["origem_m1_texto"],
+            horizontal=True,
+            key="origem_m1",
+        )
+
     # Nível cognitivo das perguntas (taxonomia de Bloom) — só faz sentido para quem gera
     nivel_bloom = "recordar"
     if not is_student:
@@ -2002,7 +2194,22 @@ with tab1:
             help=STR["bloom_help"],
         )
 
-    if not is_student and st.button(STR["btn_gen_m1"], icon=":material/auto_awesome:", key="btn_m1", type="primary"):
+    # Modo "texto colado": o professor cola o texto da aula e a app constrói
+    # lacunas + quiz a partir dele (offline: heurística; online: o Gemini só reorganiza).
+    texto_origem_m1 = ""
+    if not is_student and origem_m1 == "texto":
+        st.caption(STR["tema_titulo_m1"])
+        texto_origem_m1 = st.text_area(
+            STR["texto_m1_label"],
+            key="texto_origem_m1",
+            height=220,
+            help=STR["texto_m1_help"],
+        )
+
+    usar_texto_m1 = origem_m1 == "texto"
+    if not is_student and usar_texto_m1 and not (texto_origem_m1 or "").strip():
+        st.warning(STR["texto_m1_falta"])
+    elif not is_student and st.button(STR["btn_gen_m1"], icon=":material/auto_awesome:", key="btn_m1", type="primary"):
         with st.spinner(STR["spin_m1"]):
             limpar_respostas_antigas(prefixos=("q_", "lac_"), extras=("m1_submetido",))
             st.session_state.pop("dados_m1_recuperacao", None)
@@ -2010,7 +2217,21 @@ with tab1:
             # sem este pop, "Guardar texto" escrevia o texto antigo por cima dos
             # dados acabados de gerar.
             st.session_state.pop("ed_texto", None)
-            if offline:
+            if offline and usar_texto_m1:
+                # Heurística local sobre o texto colado — sem IA e sem factos inventados
+                try:
+                    dados_m1 = gerar_dados_m1_de_texto(texto_origem_m1, tema_m1, num_opcoes, lang=LANG)
+                except ValueError as erro:
+                    st.error(str(erro))
+                else:
+                    st.session_state["dados_m1"] = dados_m1
+                    st.success(STR["demo_texto_ok"])
+                    registar_historico(
+                        "m1",
+                        tema_de_recurso(dados_m1, tema_m1),
+                        {"m1": dados_m1, "m2": st.session_state.get("dados_m2")},
+                    )
+            elif offline:
                 dados_m1 = gerar_dados_m1_offline(tema_m1, num_opcoes, lang=LANG)
                 st.session_state["dados_m1"] = dados_m1
                 if dados_m1.get("_demo_generico"):
@@ -2020,33 +2241,28 @@ with tab1:
                 registar_historico("m1", tema_de_recurso(dados_m1, tema_m1), {"m1": dados_m1, "m2": st.session_state.get("dados_m2")})
             else:
                 nivel_txt = STR[f"bloom_{nivel_bloom}"]
-                prompt_m1 = f"""
+                cauda_m1 = ESQUEMA_M1.format(
+                    n_opc=num_opcoes, n_max=num_opcoes - 1, nivel=nivel_txt, bloom=STR["bloom_prompt"]
+                )
+                fonte_m1 = str(texto_origem_m1 or "").strip()[:6000]
+                if usar_texto_m1:
+                    # O texto do professor manda: pedir apenas a reorganização pedagógica
+                    # e as perguntas — factos só a partir do texto colado.
+                    prompt_m1 = f"""
+                {INSTR}
+                Atua como um professor e especialista pedagógico. Gera um recurso educativo em formato JSON estrito baseado EXCLUSIVAMENTE no texto base indicado no fim desta instrução — não acrescentes factos que lá não estejam. O título do recurso é '{tema_m1}'.
+                1. 'texto_explicativo': versão pedagógica e organizada do próprio texto base (aproximadamente 200 palavras), sem factos que não apareçam nele.
+                {cauda_m1}
+                === TEXTO BASE ===
+                {fonte_m1}
+                """
+                else:
+                    prompt_m1 = f"""
                 {INSTR}
                 Atua como um professor e especialista pedagógico no tema '{tema_m1}' / Act as a teacher on '{tema_m1}'.
                 Gera um recurso educativo completo em formato JSON estrito contendo:
                 1. 'texto_explicativo': Um resumo pedagógico e rigoroso sobre o tema (aproximadamente 200 palavras).
-                2. 'perguntas': Uma lista de 2 perguntas de escolha múltipla. Cada pergunta deve ter exatamente {num_opcoes} opções de resposta, um índice de 'resposta_correta' (inteiro 0 a {num_opcoes - 1}) e uma 'explicacao' da solução.
-                3. 'fill_in_the_blank': 2 frases com uma lacuna marcada como '[___]', a palavra correta para preencher a lacuna ('palavra_oculta') e o contexto.
-                4. Dificuldade cognitiva das perguntas (taxonomia de Bloom): '{nivel_txt}' — {STR['bloom_prompt']}
-
-                Responde EXCLUSIVAMENTE em formato JSON válido com a seguinte estrutura:
-                {{
-                  "texto_explicativo": "...",
-                  "perguntas": [
-                    {{
-                      "pergunta": "...",
-                      "opcoes": ["...", "..."],
-                      "resposta_correta": 0,
-                      "explicacao": "..."
-                    }}
-                  ],
-                  "fill_in_the_blank": [
-                    {{
-                      "frase": "O ADN é composto por [___] que contêm as bases nitrogenadas.",
-                      "palavra_oculta": "nucleótidos"
-                    }}
-                  ]
-                }}
+                {cauda_m1}
                 """
                 try:
                     texto = gerar_com_gemini(prompt_m1, usar_json=True)

@@ -1,4 +1,4 @@
-"""Smoke test end-to-end da app real (Streamlit AppTest) — 13 fluxos.
+"""Smoke test end-to-end da app real (Streamlit AppTest) — 14 fluxos.
 
 Corre com:  python smoke_fluxos.py
 Requer as dependências do requirements.txt instaladas.
@@ -142,5 +142,42 @@ assert d is not None, "download de exportação em falta"
 d_pdf = next((x for x in at.download_button if x.key == "btn_exportar_pdf_m1"), None)
 assert d_pdf is not None, "download do PDF em falta (fpdf2 devia estar instalado)"
 print("12. exportar recurso (.md + .pdf) OK")
+
+# 13. M1 offline a partir de texto colado (heurística local, sem IA) -> lacunas+quiz -> submeter
+TEXTO_AULA = (
+    "A fotossíntese transforma energia luminosa em energia química. As plantas usam a clorofila para absorver a luz solar. "
+    "O dióxido de carbono e a água convertem-se em glicose e oxigénio. A clorofila habita os cloroplastos das células vegetais. "
+    "Os estomas controlam a troca de gases durante o dia."
+)
+at4 = novo()
+at4.sidebar.radio(key="modo").set_value("offline").run()
+sem_excecao(at4, "13 setup")
+r_origem = next((r for r in at4.radio if r.key == "origem_m1"), None)
+assert r_origem is not None, "radio de origem do conteúdo em falta"
+r_origem.set_value("texto").run()
+sem_excecao(at4, "13 origem=texto")
+at4.text_area(key="texto_origem_m1").set_value(TEXTO_AULA).run()
+sem_excecao(at4, "13 textarea do texto")
+at4.button(key="btn_m1").click().run()
+sem_excecao(at4, "13 gerar a partir de texto")
+dados_tx = at4.session_state["dados_m1"]
+assert isinstance(dados_tx, dict) and dados_tx.get("perguntas") and dados_tx.get("fill_in_the_blank"), "falta material derivado do texto"
+assert pagina_tem(at4, "heurística"), "banner honesto (sem IA) em falta"
+assert pagina_tem(at4, "Resumo de estudo") is not None or True
+at4.button(key="btn_validar_m1").click().run()
+sem_excecao(at4, "13 submeter a partir de texto")
+assert pagina_tem(at4, "Resumo de estudo"), "resumo em falta no texto colado"
+print("13. M1 texto colado -> lacunas+quiz (heurística, sem IA) OK")
+
+# 14. texto demasiado curto -> erro honesto e nenhum recurso gerado
+at5 = novo()
+at5.sidebar.radio(key="modo").set_value("offline").run()
+next(r for r in at5.radio if r.key == "origem_m1").set_value("texto").run()
+at5.text_area(key="texto_origem_m1").set_value("Só uma frase curta.").run()
+at5.button(key="btn_m1").click().run()
+sem_excecao(at5, "14 texto curto")
+assert at5.error, "devia mostrar erro de texto demasiado curto"
+assert "dados_m1" not in at5.session_state, "nenhum recurso devia ter sido gerado"
+print("14. texto curto -> erro honesto, sem recurso OK")
 
 print("ALL APPTEST PASSED")

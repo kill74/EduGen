@@ -149,7 +149,7 @@
 <div class="barra">
   <div class="wrap barra-in">
     <span class="barra-marca"><b>edugen</b>@dsi:~ $</span>
-    <span class="promotor">v1.1.0</span>
+    <span class="promotor">v1.2.0</span>
     <nav class="barra-nav">
       <a href="#porque">porquê</a>
       <a href="#modulos">módulos</a>
@@ -180,8 +180,8 @@
   </div>
 
   <div class="numeros">
-    <div class="numero"><div class="grande">179</div><div class="mini">testes unitários</div></div>
-    <div class="numero"><div class="grande">13</div><div class="mini">fluxos e2e (smoke)</div></div>
+    <div class="numero"><div class="grande">189</div><div class="mini">testes unitários</div></div>
+    <div class="numero"><div class="grande">14</div><div class="mini">fluxos e2e (smoke)</div></div>
     <div class="numero"><div class="grande">2</div><div class="mini">idiomas (PT/EN)</div></div>
     <div class="numero"><div class="grande">0</div><div class="mini">chaves exigidas</div></div>
   </div>
@@ -218,7 +218,8 @@
       <li><span class="marcador ok">[ ok ]</span><span><strong>Nível de Bloom</strong> — Recordar/Aplicar/Analisar alimenta o prompt na geração online.</span></li>
       <li><span class="marcador ok">[ ok ]</span><span><strong>Fallback de modelos</strong> — a quota esgotou? Muda de modelo Flash sozinho e continua.</span></li>
       <li><span class="marcador ok">[ ok ]</span><span><strong>Exportar .md e .pdf</strong> — mesmo recurso; o PDF só se reconstrói quando o conteúdo muda.</span></li>
-      <li><span class="marcador ok">[ ok ]</span><span><strong>179 testes + 13 fluxos no CI</strong> — cada push passa a bainha: unitários, estáticos e AppTest de ponta a ponta.</span></li>
+      <li><span class="marcador ok">[ ok ]</span><span><strong>Texto colado → quiz</strong> — lacunas e escolha múltipla construídos a partir do próprio texto do professor, sem IA nem factos inventados.</span></li>
+      <li><span class="marcador ok">[ ok ]</span><span><strong>189 testes + 14 fluxos no CI</strong> — cada push passa a bainha: unitários, estáticos e AppTest de ponta a ponta.</span></li>
       <li><span class="marcador">[ nota ]</span><span><strong>Demo na nuvem</strong> — na Streamlit Community Cloud: adormece sem tráfego e acorda quando se abre.</span></li>
     </ol>
   </div>
@@ -227,7 +228,7 @@
 <section id="como">
   <div class="wrap">
     <h2>como é feito</h2>
-    <p>Um único <code>TrabalhoPython.py</code> (~2,6k linhas) — deliberado no entregável académico; os 179 testes isolam funções por fatias do ficheiro. Robustez por contratos: JSON do modelo validado antes de alimentar a interface, subscritos do PDF traduzidos um a um, dois idiomas com paridade garantida por teste, e a quota dos modelos gratuitos resolvida com fallback automático registado em <code>session_state</code>.</p>
+    <p>Um único <code>TrabalhoPython.py</code> (~2,7k linhas) — deliberado no entregável académico; os 189 testes isolam funções por fatias do ficheiro. Robustez por contratos: JSON do modelo validado antes de alimentar a interface, subscritos do PDF traduzidos um a um, dois idiomas com paridade garantida por teste, e a quota dos modelos gratuitos resolvida com fallback automático registado em <code>session_state</code>.</p>
     <p>Privacidade por problema resolvido: a folha de estilo não carrega nada de fora, esta página não tem um único <code>&lt;script&gt;</code> e a chave Gemini — se a usares — fica em Secrets, nunca no histórico.</p>
   </div>
 </section>
