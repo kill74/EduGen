@@ -97,6 +97,26 @@ A aplicação abre em `http://localhost:8501`. Na barra lateral:
   ser introduzida na barra lateral, em `.streamlit/secrets.toml`
   (`GEMINI_API_KEY = "..."`) ou na variável de ambiente `GEMINI_API_KEY`.
 
+## Deploy na nuvem (Streamlit Community Cloud)
+
+A aplicação é um ficheiro único, com dependências declaradas e arranque em modo
+Offline/Demo — pode ser publicada na nuvem sem chaves e sem configuração.
+
+1. Cria conta em [share.streamlit.io](https://share.streamlit.io/) com a tua conta GitHub.
+2. Autoriza o acesso ao repositório (`kill74/EduGen`).
+3. **Create app** → *from existing repo*: cola `kill74/EduGen`, branch `master`,
+   ficheiro principal `TrabalhoPython.py`.
+4. URL à escolha (ex.: `edugen.streamlit.app`) e Python **3.12** (o mesmo do CI) → **Deploy**.
+5. (Opcional, para o modo Online) **Settings → Secrets** e cola:
+
+```toml
+GEMINI_API_KEY = "a-tua-chave"
+```
+
+Notas: a app publica sem qualquer segredo e o modo Offline funciona de imediato; a primeira
+compilação demora 1-2 minutos (a Cloud instala as dependências do `requirements.txt`);
+após inatividade a app adormece e o acesso seguinte reconstrói-a automaticamente.
+
 ## Modelos e quota
 
 Os modelos recomendados para o tier gratuito aparecem primeiro; modelos Pro/preview vão para

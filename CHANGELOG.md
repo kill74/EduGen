@@ -10,6 +10,11 @@ e o versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
 Auditoria completa "à prova de bugs": revisão de todo o fluxo (offline + online,
 editor, recuperação, histórico e exportações) com correções e testes de regressão.
 
+### Adicionado
+
+- **Secção "Deploy na nuvem" no README** — passo-a-passo da publicação no Streamlit
+  Community Cloud (URL pública, modo Offline de arranque, segredo opcional para o modo Online).
+
 ### Corrigido
 
 - **Submissão antiga sobrevivia ao editor** — adicionar pergunta/lacuna ou repor a
