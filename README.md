@@ -8,6 +8,8 @@ de preenchimento de lacunas), cria um jogo de associação de conceitos e avalia
 alunos — tudo com apoio de inteligência artificial (Google Gemini) e com um **modo
 Offline/Demo totalmente funcional, sem qualquer chave de API**.
 
+**Demo aberta na nuvem**: [edugen-afts2gaappbcdvms8bapp2js.streamlit.app](https://edugen-afts2gaappbcdvms8bapp2js.streamlit.app/) — arranca em modo Offline/Demo, sem chave (sem tráfego a app adormece e acorda ao abrir).
+
 ## Contexto académico
 
 Este projeto foi desenvolvido no âmbito da unidade curricular **DSI — Design de Sistemas
@@ -125,7 +127,7 @@ Offline/Demo — pode ser publicada na nuvem sem chaves e sem configuração.
 2. Autoriza o acesso ao repositório (`kill74/EduGen`).
 3. **Create app** → *from existing repo*: cola `kill74/EduGen`, branch `master`,
    ficheiro principal `TrabalhoPython.py`.
-4. URL à escolha (ex.: `edugen.streamlit.app`) e Python **3.12** (o mesmo do CI) → **Deploy**.
+4. URL à escolha (neste repo: `edugen-afts2gaappbcdvms8bapp2js` — demo aberta acima) e Python **3.12** (o mesmo do CI) → **Deploy**.
 5. (Opcional, para o modo Online) **Settings → Secrets** e cola:
 
 ```toml
